@@ -1,9 +1,9 @@
 # P0 Shared Technical Contracts
 
-Status: Draft  
+Status: Frozen  
 Scope: P0  
 Owner: Tech Lead  
-Product baseline: Frozen P0 Scope / PRD / Business Rules v2 — 2026-10-09
+Product baseline: Frozen P0 Scope / Business Rules — updated 2026-10-11
 
 ## Purpose
 
@@ -13,7 +13,7 @@ These contracts define the technical rules that multiple team members must follo
 
 They are based on the frozen P0 Scope and P0 Business Rules.
 
-A frozen product baseline does not automatically freeze the technical contracts. Each technical contract still follows its own review lifecycle.
+All contracts in this directory are now frozen for P0. Any future change must follow the Contract Change Rule defined in `08-ENVIRONMENT_AND_WORKFLOW.md`.
 
 ## Contract documents
 
@@ -32,7 +32,8 @@ A frozen product baseline does not automatically freeze the technical contracts.
    - Core P0 domain objects
    - Entity meanings
    - Relationships and lifecycle rules
-   - Membership roles and Proposal adoption rules
+   - Membership roles
+   - Proposal voting, rejection, adoption, and reopening rules
 
 3. `03-AUTH_CONTRACT.md`
    - Authentication approach
@@ -46,7 +47,7 @@ A frozen product baseline does not automatically freeze the technical contracts.
    - Unique constraints
    - Deletion rules
    - Prisma migration rules
-   - Concurrent update and adoption atomicity requirements
+   - Concurrent update, voting, rejection, and adoption atomicity requirements
 
 5. `05-REST_API_CONTRACT.md`
    - REST API naming conventions
@@ -60,7 +61,7 @@ A frozen product baseline does not automatically freeze the technical contracts.
    - Trip room strategy
    - Event naming conventions
    - Reconnection and synchronization rules
-   - Proposal adoption synchronization
+   - Proposal voting, rejection, adoption, and reopening synchronization
 
 7. `07-SHARED_TYPES.md`
    - Shared enums
@@ -79,11 +80,21 @@ A frozen product baseline does not automatically freeze the technical contracts.
 
 ## Contract lifecycle
 
-Each contract follows:
+The P0 technical contracts have completed:
 
 ```text
 Draft → Team Review → Frozen
 ```
+
+Current state:
+
+```text
+Frozen
+```
+
+Feature implementations must follow these contracts.
+
+Any proposed change to a frozen contract must be reviewed and agreed before implementation.
 
 ## Source of truth
 
@@ -92,8 +103,9 @@ For P0:
 1. Frozen P0 Scope defines what P0 includes.
 2. Frozen P0 Business Rules define how the product behaves.
 3. `00-DOMAIN_VOCABULARY.md` defines the shared language.
-4. These Technical Contracts define how the system supports those rules.
-5. Feature implementations must follow the frozen technical contracts.
+4. `02-DOMAIN_MODEL.md` defines the core domain rules and lifecycles.
+5. The remaining Technical Contracts define how the system supports those rules.
+6. Feature implementations must follow the frozen technical contracts.
 
 ```text
 P0 Scope / Business Rules
@@ -103,4 +115,19 @@ Domain Vocabulary / Domain Model
 Technical Contracts
         ↓
 ERD / Prisma / REST / Realtime implementation
+```
+
+## Development rule
+
+Before opening a PR, check that the implementation does not conflict with any frozen contract.
+
+If a conflict is found:
+
+```text
+do not silently change the implementation contract
+→ raise the conflict
+→ review the affected contract
+→ agree the change
+→ update the contract first
+→ then implement
 ```
