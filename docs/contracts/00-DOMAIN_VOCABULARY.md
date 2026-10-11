@@ -152,15 +152,70 @@ An optional suggestion used to collect opinions before a group decision.
 
 A Proposal is not required before creating an Activity.
 
-A Proposal contains an adoption marker:
+A Proposal contains a persisted status:
 
 ```text
-is_adopted
+PENDING
+ACCEPTED
+REJECTED
 ```
 
-This marker means whether the Proposal has been manually accepted/adopted.
+Canonical meaning:
 
-It is not itself an Activity relationship field.
+```text
+PENDING
+→ Proposal is open for normal voting and may be manually Adopted when the current Strict Majority rule is satisfied.
+
+ACCEPTED
+→ Proposal has been successfully Adopted and has one current Proposal-sourced Activity.
+
+REJECTED
+→ Proposal has crossed the rejection threshold.
+
+Whether Vote changes or manual Adoption remain available after `REJECTED` is not yet frozen.
+```
+
+`ProposalStatus` is a state field. It is not itself the Proposal-to-Activity relationship.
+
+P0 defines an automatic rejection threshold for a `PENDING` Proposal.
+
+Let:
+
+```text
+N = number of current Trip participants (OWNER + MEMBER)
+R = number of current REJECT votes from those current participants
+```
+
+The Proposal is automatically rejected when:
+
+```text
+R >= ceil(N / 2)
+```
+
+At that moment:
+
+```text
+Proposal.status: PENDING → REJECTED
+```
+
+This is the Early Rejection / rejection kill-line.
+
+It is intentionally asymmetric with Adoption:
+
+```text
+ACCEPTED requires AGREE > N / 2 and a manual Adopt action.
+REJECTED triggers automatically once R >= ceil(N / 2).
+```
+
+For even `N`, exactly half REJECT is sufficient because a strict AGREE majority has become mathematically impossible.
+
+Examples:
+
+```text
+N = 4 → reject threshold = 2
+N = 5 → reject threshold = 3
+N = 6 → reject threshold = 3
+```
 
 ---
 
@@ -187,7 +242,9 @@ PENDING
 
 A User has at most one current Vote per Proposal.
 
-Adopted Proposals do not accept new Vote changes.
+`PENDING` Proposals accept Vote creation/change. `ACCEPTED` Proposals are closed to Vote changes by the existing Adoption rules.
+
+Vote behaviour while `REJECTED` is not yet frozen.
 
 ---
 
@@ -224,7 +281,9 @@ pendingCount = participantCount - agreeCount - rejectCount
 
 Rates/percentages are derived presentation values and are not persisted voting states.
 
-P0 does not automatically reject, close, archive, or fork a Proposal based on `REJECT` count.
+For a `PENDING` Proposal, reaching the rejection threshold automatically changes status to `REJECTED` and closes further Vote changes and Adoption.
+
+P0 still does not add a rejected-Proposal archive view or Revise & Fork workflow.
 
 ---
 
@@ -234,10 +293,10 @@ The manual action that accepts an eligible Proposal and creates one Activity fro
 
 Any Current Trip Participant may Adopt when the current strict-majority rule is satisfied.
 
-A successful Adoption sets:
+A successful Adoption performs:
 
 ```text
-Proposal.is_adopted = true
+Proposal.status: PENDING → ACCEPTED
 ```
 
 and creates one Proposal-sourced Activity.
@@ -246,10 +305,10 @@ P0 allows at most one current Activity created from the same Proposal.
 
 Concurrent Adoption attempts must not create duplicates.
 
-If that adopted Activity is deleted, the Proposal returns to:
+If that accepted Proposal-sourced Activity is deleted, the Proposal returns to:
 
 ```text
-is_adopted = false
+status: ACCEPTED → PENDING
 ```
 
 and can be Adopted again only after the current majority requirement is satisfied again.
@@ -270,10 +329,8 @@ Realtime delivery is not the authoritative stored state.
 MembershipRole: OWNER | MEMBER
 InvitationStatus: PENDING | ACCEPTED | REJECTED
 VoteDecision: AGREE | REJECT
-Proposal.is_adopted: boolean
+ProposalStatus: PENDING | ACCEPTED | REJECTED
 ```
-
-P0 defines no `ProposalStatus` enum. In particular, it does not introduce `VOTING / ACCEPTED / REJECTED` as persisted Proposal lifecycle states.
 
 # Explicit P0 exclusions
 
