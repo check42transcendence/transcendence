@@ -177,6 +177,14 @@ REJECT
 
 No Vote record means the User has not voted.
 
+For UI/statistics purposes, this not-voted state may be displayed as:
+
+```text
+PENDING
+```
+
+`PENDING` is a derived logical/UI state only. It is **not** a third persisted `VoteDecision` value.
+
 A User has at most one current Vote per Proposal.
 
 Adopted Proposals do not accept new Vote changes.
@@ -198,6 +206,25 @@ floor(currentParticipantCount / 2) + 1
 ```
 
 The denominator includes the Owner and non-voters.
+
+Vote statistics may expose:
+
+```text
+agreeCount
+rejectCount
+pendingCount
+participantCount
+```
+
+where:
+
+```text
+pendingCount = participantCount - agreeCount - rejectCount
+```
+
+Rates/percentages are derived presentation values and are not persisted voting states.
+
+P0 does not automatically reject, close, archive, or fork a Proposal based on `REJECT` count.
 
 ---
 
@@ -246,6 +273,8 @@ VoteDecision: AGREE | REJECT
 Proposal.is_adopted: boolean
 ```
 
+P0 defines no `ProposalStatus` enum. In particular, it does not introduce `VOTING / ACCEPTED / REJECTED` as persisted Proposal lifecycle states.
+
 # Explicit P0 exclusions
 
-P0 excludes Chat, Notification Center, Friends, Budget, Files, Maps, Activity Locking, Unscheduled Activities, Proposal Deadline/Edit/Delete, Ownership Transfer, Editor/Viewer roles, Archive/Restore, and full Activity audit history.
+P0 excludes Chat, Notification Center, Friends, Budget, Files, Maps, Activity Locking, Unscheduled Activities, Proposal Deadline/Edit/Delete, automatic Proposal rejection/kill-line, rejected-Proposal archive, Revise & Fork, Ownership Transfer, Editor/Viewer roles, Archive/Restore, and full Activity audit history.
