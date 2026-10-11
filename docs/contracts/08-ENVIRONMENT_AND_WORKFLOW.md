@@ -83,7 +83,21 @@ backend:  http://localhost:3000
 
 Vite development `/api` proxy targets `127.0.0.1:3000`.
 
-When database-backed host development is introduced, its supported DB connection method must be documented in the Prisma integration PR.
+Database-backed host development requires a reachable PostgreSQL instance and:
+
+```text
+DATABASE_URL
+```
+
+After pulling Prisma schema changes, or after changing `prisma/schema.prisma`, run:
+
+```bash
+cd backend
+npm run prisma:validate
+npm run prisma:generate
+```
+
+Before starting the backend outside Compose, provide a `DATABASE_URL` reachable from the host environment.
 
 Do not expose PostgreSQL on unrestricted public interfaces.
 
@@ -257,6 +271,8 @@ npm run build
 
 ```text
 npm ci
+npm run prisma:validate
+npm run prisma:generate
 npm run lint
 npm run build
 npm test
