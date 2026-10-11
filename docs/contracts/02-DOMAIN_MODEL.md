@@ -138,7 +138,8 @@ MEMBER
 - an `OWNER` may not Leave Trip;
 - removing Membership immediately removes future Workspace access;
 - leaving preserves historical Activity and Proposal contributions;
-- Votes belonging to a leaving Member must no longer remain active and must never reactivate automatically if the User later rejoins.
+- Votes belonging to a leaving Member must no longer remain active and must never reactivate automatically if the User later rejoins;
+- the accepted P0 persistence strategy is to physically delete that leaving Member's Vote rows for Proposals in the Trip within the Leave transaction.
 
 ---
 
@@ -169,7 +170,11 @@ The UI may display `Decline`, but the technical terminal status is `REJECTED`.
 
 # 7. Itinerary and ItineraryDay
 
+`ItineraryDay` is a first-class persisted P0 entity.
+
 All ItineraryDays are created when the Trip is created.
+
+Persistence of `ItineraryDay` is no longer a deferred P0 decision.
 
 ## Domain invariants
 
@@ -249,7 +254,7 @@ is_adopted = true
 
 `is_adopted` is the adoption marker. It is not itself the Proposal-to-Activity relation.
 
-P0 has no automatic Passed/Rejected result status, no Deadline, no Proposal Edit/Delete, and no multi-option list.
+P0 has no automatic Passed/Rejected result status, no `ProposalStatus` lifecycle enum, no Early Rejection / kill-line, no rejected-Proposal archive, no Revise & Fork, no Deadline, no Proposal Edit/Delete, and no multi-option list.
 
 ---
 
@@ -266,7 +271,24 @@ REJECT
 
 A User with no Vote row is logically unvoted.
 
-For UI/domain discussion, this may be described as `PENDING / NOT VOTED`, but `PENDING` is not a third persisted Vote decision value.
+For UI/domain discussion and aggregate statistics, this may be described as `PENDING / NOT VOTED`, but `PENDING` is not a third persisted Vote decision value.
+
+Derived voting counts may include:
+
+```text
+agreeCount
+rejectCount
+pendingCount
+participantCount
+```
+
+with:
+
+```text
+pendingCount = participantCount - agreeCount - rejectCount
+```
+
+Vote rates/percentages are derived presentation values. They do not create additional Proposal lifecycle states or automatic rejection behaviour.
 
 ## Domain invariants
 
@@ -317,6 +339,8 @@ A >= floor(N / 2) + 1
 Not-voted participants therefore still increase the denominator.
 
 Former participants are not included.
+
+`REJECT` votes may be counted and displayed, but P0 does not define an automatic mathematical rejection threshold. A Proposal is not automatically moved to `REJECTED`, archived, or frozen because of its Reject count.
 
 ---
 
