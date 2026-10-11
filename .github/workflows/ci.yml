@@ -42,6 +42,8 @@ jobs:
   backend:
     name: Backend checks
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://transcendence:ci_only@localhost:5432/transcendence
     defaults:
       run:
         working-directory: backend
@@ -59,6 +61,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Validate Prisma schema
+        run: npm run prisma:validate
+
+      - name: Generate Prisma Client
+        run: npm run prisma:generate
 
       - name: Lint
         run: npm run lint

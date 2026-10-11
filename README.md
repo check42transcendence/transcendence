@@ -22,11 +22,14 @@ Currently implemented:
 - Production frontend image served by Nginx.
 - Production backend image running as a non-root user.
 - PostgreSQL container with persistent storage.
+- Prisma ORM integration using the PostgreSQL driver adapter.
+- NestJS database module with managed startup and shutdown connections.
+- Prisma schema validation and Client generation in CI and Docker builds.
 - Docker Compose startup, service health checks, and internal networking.
 - GitHub Actions checks for the frontend, backend, and containerized stack.
 
-Prisma integration, authentication, travel features, real-time
-collaboration, and HTTPS are not implemented yet.
+Domain database models and migrations, authentication, travel features,
+real-time collaboration, and HTTPS are not implemented yet.
 
 The current containerized stack uses HTTP for local development.
 HTTPS will be added in a separate infrastructure change.
@@ -34,7 +37,8 @@ HTTPS will be added in a separate infrastructure change.
 ## Project Structure
 
 - `frontend/`: React application, frontend Dockerfile, and Nginx configuration.
-- `backend/`: NestJS application and backend Dockerfile.
+- `backend/`: NestJS application, Prisma configuration and schema, and
+  backend Dockerfile.
 - `compose.yml`: frontend, backend, and PostgreSQL services.
 - `.env.example`: example local environment configuration.
 - `.nvmrc`: Node.js version used for development.
@@ -124,11 +128,29 @@ nvm install
 nvm use
 ```
 
-Start the backend in one terminal:
+The complete backend requires a reachable PostgreSQL database and a
+`DATABASE_URL`. Use the containerized application workflow above to run
+the integrated frontend, backend, and database stack.
+
+Prisma Client is generated locally and is not committed to Git. Run the
+following commands after changing `prisma/schema.prisma` or pulling schema
+changes from another branch:
+
+```bash
+cd backend
+export DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DATABASE'
+npm run prisma:validate
+npm run prisma:generate
+```
+
+To run the backend outside Compose, provide a `DATABASE_URL` for a
+PostgreSQL instance reachable from the current environment:
 
 ```bash
 cd backend
 npm ci
+export DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DATABASE'
+npm run prisma:generate
 npm run start:dev
 ```
 
@@ -166,6 +188,9 @@ Backend:
 
 ```bash
 cd backend
+export DATABASE_URL='postgresql://transcendence:validation_only@localhost:5432/transcendence'
+npm run prisma:validate
+npm run prisma:generate
 npm run lint
 npm run build
 npm test
@@ -187,8 +212,8 @@ GitHub Actions runs the following jobs for pull requests targeting
 `main` and for pushes to `main`:
 
 - `Frontend checks`: dependency installation, lint, and production build.
-- `Backend checks`: dependency installation, lint, build, unit tests,
-  and end-to-end tests.
+- `Backend checks`: dependency installation, Prisma schema validation,
+  Prisma Client generation, lint, build, unit tests, and end-to-end tests.
 - `Container checks`: Compose validation, image builds, service startup,
   health checks, and HTTP verification through the Nginx gateway.
 
@@ -200,6 +225,7 @@ GitHub Actions runs the following jobs for pull requests targeting
 - Docker Compose: https://docs.docker.com/compose/
 - PostgreSQL: https://www.postgresql.org/docs/
 - Nginx: https://nginx.org/en/docs/
+- Prisma ORM: https://www.prisma.io/docs/orm/
 
 AI assistance was used to help draft the initial product proposal,
 guide development environment setup, troubleshoot installation issues,
