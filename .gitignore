@@ -20,3 +20,6 @@ coverage/
 
 # Generated Prisma Client
 backend/src/generated/prisma/
+
+# Local TLS certificates and private keys
+/certs/

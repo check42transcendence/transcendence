@@ -49,14 +49,30 @@ services:
       context: ./frontend
     ports:
       - "127.0.0.1:${APP_PORT:-8080}:80"
+      - "127.0.0.1:8443:443"
+    volumes:
+      - type: bind
+        source: ./certs
+        target: /etc/nginx/certs
+        read_only: true
+        bind:
+          create_host_path: false
     depends_on:
       backend:
         condition: service_healthy
     healthcheck:
       test:
         [
-          "CMD-SHELL",
-          "wget -q -O /dev/null http://127.0.0.1/ || exit 1",
+          "CMD",
+          "curl",
+          "--fail",
+          "--silent",
+          "--show-error",
+          "--max-time",
+          "3",
+          "--cacert",
+          "/etc/nginx/certs/localhost.crt",
+          "https://localhost/",
         ]
       interval: 5s
       timeout: 5s

@@ -92,6 +92,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
+      - name: Generate local TLS certificate
+        run: sh scripts/generate-local-cert.sh
+
       - name: Validate Compose configuration
         run: docker compose --env-file .env.example config --quiet
 
@@ -101,23 +104,38 @@ jobs:
           --env-file .env.example
           up --build --detach --wait --wait-timeout 120
 
-      - name: Verify frontend
+      - name: Verify HTTP redirect
+        run: |
+          result="$(
+            curl \
+              --silent \
+              --show-error \
+              --output /dev/null \
+              --write-out '%{http_code} %{redirect_url}' \
+              'http://localhost:8080/api/health?check=ci'
+          )"
+
+          test "$result" = '308 https://localhost:8443/api/health?check=ci'
+
+      - name: Verify frontend over HTTPS
         run: >
           curl
+          --cacert certs/localhost.crt
           --fail
           --show-error
           --silent
-          http://127.0.0.1:8080/
+          https://localhost:8443/
           > /dev/null
 
-      - name: Verify backend through gateway
+      - name: Verify backend through HTTPS gateway
         run: |
           response="$(
             curl \
+              --cacert certs/localhost.crt \
               --fail \
               --show-error \
               --silent \
-              http://127.0.0.1:8080/api/health
+              https://localhost:8443/api/health
           )"
 
           test "$response" = '{"status":"ok"}'
