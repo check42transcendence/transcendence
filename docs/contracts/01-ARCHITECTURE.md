@@ -103,13 +103,56 @@ Realtime covers:
 
 Socket.IO is not a second database write path.
 
-## 7. Proposal Adoption Boundary
+## 7. Proposal Status / Adoption Boundary
 
-`Proposal.is_adopted` is the stored marker for whether a Proposal has been accepted/adopted.
+Proposal stores one canonical status:
 
-It is not an Activity relation field.
+```text
+PENDING
+ACCEPTED
+REJECTED
+```
 
-A separate database relation may identify which Activity originated from which Proposal so that the one-to-one adoption rule and delete/re-adopt behaviour can be enforced.
+Successful manual Adoption changes:
+
+```text
+PENDING → ACCEPTED
+```
+
+and creates one Proposal-sourced Activity.
+
+Deleting that Proposal-sourced Activity changes:
+
+```text
+ACCEPTED → PENDING
+```
+
+The status field is not the Activity relation itself.
+
+A separate database relation identifies which Activity originated from which Proposal so the one-to-one Adoption rule and delete/re-adopt behaviour can be enforced.
+
+`REJECTED` is a valid Proposal state.
+
+For majority-affecting mutations while a Proposal is `PENDING`, the backend recomputes:
+
+```text
+N = current Trip participants
+R = current REJECT votes from current participants
+```
+
+and automatically performs:
+
+```text
+PENDING → REJECTED
+```
+
+when:
+
+```text
+R >= ceil(N / 2)
+```
+
+This check belongs to the authoritative backend/database transaction boundary, never to frontend-only logic.
 
 Exact fields/constraints belong to the Database Contract.
 
