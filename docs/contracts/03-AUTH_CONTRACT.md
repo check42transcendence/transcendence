@@ -1,38 +1,69 @@
 # P0 Authentication & Authorization Contract
 
-Status: Draft  
+Status: Frozen  
 Scope: P0  
 Owner: Tech Lead  
-Depends on: Frozen P0 Scope, Frozen P0 Business Rules v2, `00-DOMAIN_VOCABULARY.md`, `01-ARCHITECTURE.md`, `02-DOMAIN_MODEL.md`
+Depends on: `00-DOMAIN_VOCABULARY.md`, `02-DOMAIN_MODEL.md`
 
 ## 1. Authentication
 
-P0 uses Email + Password.
+Register uses:
 
-JWT is carried in an HttpOnly cookie.
+```text
+Email + Username + Password
+```
 
-JWT proves identity only and does not contain authoritative Trip role state.
+Login uses:
 
----
+```text
+Email + Password
+```
 
-# 2. Trip Access
+Password plaintext is never persisted.
 
-A User may access a Trip Workspace only if a current TripMembership exists.
+P0 stores a strong password hash (Argon2id recommended).
 
-Allowed roles:
+Authenticated identity is carried by a backend-issued JWT in an HttpOnly cookie.
+
+JWT proves identity only. It does not contain authoritative Trip role state.
+
+Recommended cookie baseline:
+
+```text
+HttpOnly
+SameSite=Lax
+Secure in HTTPS environments
+```
+
+## 2. Registration Session Behaviour
+
+Freeze-candidate technical choice:
+
+```text
+Register creates the User but does not implicitly establish a login session.
+```
+
+The client uses the explicit Login endpoint to authenticate.
+
+This avoids an undocumented side effect between Register and Login.
+
+## 3. Trip Access
+
+Workspace access requires a current TripMembership:
 
 ```text
 OWNER
+or
 MEMBER
 ```
 
-Historical `trip.created_by` is not an authorization source.
+Pending Invitation is insufficient.
 
----
+`trip.created_by` is never an authorization source.
 
-# 3. Owner Authorization
+## 4. Owner-Only Operations
 
-Owner authority is determined only by:
+Owner is determined only by:
 
 ```text
 TripMembership.role == OWNER
@@ -40,145 +71,103 @@ TripMembership.role == OWNER
 
 Owner-only P0 operations:
 
-- Invite User;
-- Delete Trip.
-
-P0 has no Edit Trip.
+```text
+Invite User
+Delete Trip
+```
 
 Owner cannot Leave.
 
----
-
-# 4. Current Participant Operations
+## 5. Current Participant Operations
 
 Both OWNER and MEMBER may:
 
-- view Trip/Member List/Itinerary;
+- view Trip Workspace;
+- view Members/Days/Activities/Proposals;
 - CRUD Activities;
-- create/view Proposals;
-- vote/change their own Vote while Proposal is not Adopted;
-- manually Adopt an eligible Proposal.
+- create Proposal;
+- use the normal PENDING Vote flow;
+- request manual Adoption when the domain rules permit.
 
----
+## 6. Invitation Authorization
 
-# 5. Invitation Authorization
+Only Owner creates Invitations.
 
-Only Owner creates Invitation.
+Only target User may Accept/Reject their Invitation.
 
-Only the target User may Accept/Reject their Invitation.
-
-Pending Invitation does not grant Workspace access.
-
----
-
-# 6. Leave Authorization
-
-Only role `MEMBER` may leave their own Membership.
-
-After Leave:
-
-- access ends immediately;
-- historical Activity/Proposal remains;
-- their Vote no longer counts.
-
----
-
-# 7. Activity Authorization
+## 7. Activity Authorization
 
 Backend verifies:
 
 - authenticated User;
 - current TripMembership;
-- Activity belongs to that Trip;
-- Activity belongs to a valid Day;
-- concurrency requirements.
+- Activity belongs to URL Trip;
+- referenced Day belongs to same Trip;
+- OCC requirements for update.
 
-Recent-editor identity/time come from backend context, not client-supplied identity.
+Creator does not receive exclusive Activity rights.
 
-Deleting an Activity that was created through Proposal Adoption must trigger the corresponding Proposal adoption-state reset defined by Domain/Database contracts.
+Recent-editor identity comes from backend identity, never client payload.
 
----
-
-# 8. Proposal / Vote Authorization
+## 8. Proposal / Vote Authorization
 
 Current participants may create Proposals.
 
-Users may create/change only their own Vote.
+Users may mutate only their own Vote.
 
-Vote decision:
+For `PENDING`, normal Vote behaviour is defined by the Domain Contract.
 
-```text
-AGREE
-REJECT
-```
+For `ACCEPTED`, Vote mutation is not allowed.
 
-Vote creation/change is allowed only while:
+For `REJECTED`, Vote mutation is not allowed in P0.
 
-```text
-Proposal.is_adopted == false
-```
+## 9. Adoption Authorization
 
-After Adoption it is closed.
+Any current participant may request Adoption in the normal `PENDING` flow.
 
-If the adopted Activity is later deleted and `is_adopted` returns to `false`, normal pre-Adoption voting authorization applies again.
+Backend verifies Membership, Trip relationship, current state, majority, scheduling input, and duplicate prevention.
 
----
+For `REJECTED`, Adoption is not allowed in P0.
 
-# 9. Adoption Authorization
+## 10. Server-Controlled Proposal Status
 
-Any current participant may request Adoption.
+Clients do not directly set Proposal status.
 
-Backend must verify:
-
-- acting User still has current Membership;
-- Proposal belongs to accessible Trip;
-- `Proposal.is_adopted == false`;
-- current AGREE count strictly exceeds half of current participant count;
-- required Activity data is valid;
-- no duplicate current Activity can be created from the same Proposal.
-
-On successful atomic persistence:
+Defined server transitions:
 
 ```text
-create Proposal-sourced Activity
-set Proposal.is_adopted = true
+Create Proposal → PENDING
+PENDING + reject threshold → REJECTED
+PENDING + successful manual Adoption → ACCEPTED
+Delete Proposal-sourced Activity → ACCEPTED → PENDING
 ```
 
-`is_adopted` is the adoption marker only.
+## 11. HTTP Auth Error Semantics
 
-The exact Proposal-to-Activity FK direction/constraint belongs to the Database Contract.
+```text
+401
+→ missing/invalid authentication
 
----
+403
+→ authenticated but insufficient permission
+```
 
-# 10. REST Auth Errors
+Business conflicts are not auth failures.
 
-- missing/invalid auth → `401`
-- authenticated but insufficient permission → `403`
-
-Business conflicts such as stale Activity version, insufficient majority, already adopted Proposal, or concurrent duplicate Adoption are not auth failures.
-
----
-
-# 11. Socket.IO Auth
+## 12. Socket.IO Authentication
 
 Socket.IO uses the same backend-authenticated identity.
 
-Trip-room access requires current TripMembership.
-
-Pending Invitation is insufficient.
+Trip-room subscription requires current Membership.
 
 When Membership ends, protected realtime delivery must stop.
 
----
-
-# 12. Frontend Rules
-
-Frontend may shape UI from current state, but cannot replace backend authorization.
+## 13. Frontend Security Rules
 
 Frontend must not:
 
-- read HttpOnly JWT;
-- use localStorage/sessionStorage as auth source;
-- treat Creator as Owner authorization;
-- trust a locally stored role without backend verification;
+- read the HttpOnly token;
+- use localStorage/sessionStorage as auth authority;
+- trust client-supplied role;
+- use Creator as Owner authorization;
 - send User ID as proof of identity.

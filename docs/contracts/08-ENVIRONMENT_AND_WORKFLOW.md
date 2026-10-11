@@ -1,98 +1,51 @@
 # P0 Environment & Workflow Contract
 
-Status: Draft  
+Status: Frozen  
 Scope: P0  
 Owner: Tech Lead  
-Product baseline: Frozen P0 Scope / PRD / Business Rules v2 — 2026-10-09  
 Depends on: `01-ARCHITECTURE.md`, `03-AUTH_CONTRACT.md`, `04-DATABASE_CONTRACT.md`, `05-REST_API_CONTRACT.md`, `06-REALTIME_CONTRACT.md`, `07-SHARED_TYPES.md`
 
 ## Purpose
 
-This document defines the shared P0 development environment, container/runtime baseline, repository workflow, CI expectations, migration workflow, contract-change process, and repository hygiene rules.
+Defines the shared P0 development environment, containers, Git workflow, CI, migration workflow, contract-change rules, and repository hygiene.
 
-It exists to ensure that all Vertical Slices are built on the same technical baseline and can be integrated into `main` without each feature inventing its own environment or workflow.
+All P0 Contracts in this set are Frozen. Any future change requires the Contract Change Rule below.
 
----
-
-# 1. P0 Technical Baseline
-
-P0 uses:
+## 1. Technical Baseline
 
 ```text
-Frontend:   React + TypeScript + Vite
-Backend:    NestJS + TypeScript
-Database:   PostgreSQL + Prisma
-Realtime:   Socket.IO
-Runtime:    Node.js
+Frontend: React + TypeScript + Vite
+Backend: NestJS + TypeScript
+Database: PostgreSQL + Prisma
+Realtime: Socket.IO
+Runtime: Node.js
 Package manager: npm
 Containers: Docker + Docker Compose
-Gateway:    Nginx
+Gateway: Nginx
 ```
 
-Root Node version:
+Canonical Node version:
 
 ```text
 v24.21.0
 ```
 
-The root `.nvmrc` is the canonical Node.js development version.
+Root `.nvmrc` is authoritative.
 
-Developers should run:
-
-```bash
-nvm install
-nvm use
-```
-
-when using `nvm`.
-
----
-
-# 2. Canonical Ports and Paths
-
-Local development baseline:
+## 2. Ports / Paths
 
 ```text
-Frontend Vite: 5173
-Backend NestJS: 3000
-PostgreSQL:     5432
-REST prefix:    /api
-Socket.IO path: /socket.io
+Vite frontend: 5173
+NestJS backend: 3000
+PostgreSQL internal: 5432
+Container browser port: APP_PORT, default 8080
+REST: /api
+Socket.IO: /socket.io
 ```
 
-Containerized browser entry point:
+## 3. Compose Services
 
-```text
-http://localhost:8080
-```
-
-or:
-
-```text
-http://localhost:${APP_PORT}
-```
-
-when `APP_PORT` is overridden.
-
-Current health endpoint:
-
-```http
-GET /api/health
-```
-
-Expected response:
-
-```json
-{
-  "status": "ok"
-}
-```
-
----
-
-# 3. Docker Compose Service Names
-
-Canonical Compose service names are:
+Exactly:
 
 ```text
 frontend
@@ -100,297 +53,124 @@ backend
 postgres
 ```
 
-Cross-container communication must use Compose DNS service names, not `localhost`.
+Cross-container communication uses service DNS names, not `localhost`.
 
-Examples:
-
-```text
-backend → postgres:5432
-frontend/Nginx → backend:3000
-```
-
-Inside the backend container, `localhost` refers to the backend container itself and must not be used to reach PostgreSQL.
-
----
-
-# 4. Current Container Topology
-
-## 4.1 PostgreSQL
-
-The `postgres` service:
-
-- runs PostgreSQL;
-- stores data in the named volume `postgres_data`;
-- uses a health check before dependent services start;
-- does not require public host exposure of port `5432` in the P0 container baseline.
-
-## 4.2 Backend
-
-The `backend` service:
-
-- listens internally on port `3000`;
-- receives `DATABASE_URL` using the `postgres` service hostname;
-- starts only after PostgreSQL is healthy;
-- exposes a backend health check;
-- runs the production runtime as a non-root user.
-
-## 4.3 Frontend / Gateway
-
-The `frontend` service:
-
-- builds the React/Vite frontend;
-- serves the production build through Nginx;
-- proxies `/api/` to `backend:3000`;
-- exposes the application to the host on loopback only by default:
+Current topology:
 
 ```text
-127.0.0.1:${APP_PORT:-8080}:80
+Browser
+→ frontend/Nginx
+→ backend:3000
+→ postgres:5432
 ```
 
-P0 realtime implementation must later proxy `/socket.io/` to the backend with WebSocket upgrade support as defined in `06-REALTIME_CONTRACT.md`.
-
----
-
-# 5. Local Development Topology
-
-Without Docker, the current development baseline is:
+PostgreSQL uses named volume:
 
 ```text
-Frontend:
-http://localhost:5173
-
-Backend:
-http://localhost:3000
-
-Backend health:
-http://localhost:3000/api/health
+postgres_data
 ```
 
-The Vite development proxy currently forwards:
+PostgreSQL need not expose a public host port in the baseline.
+
+## 4. Local Development
+
+Current host development:
 
 ```text
-/api
-→ http://127.0.0.1:3000
+frontend: http://localhost:5173
+backend:  http://localhost:3000
 ```
 
-Frontend and backend development processes must therefore currently run on the same host unless the proxy configuration is intentionally changed.
+Vite development `/api` proxy targets `127.0.0.1:3000`.
 
-This Vite proxy is development-only. Production/container traffic goes through Nginx.
+When database-backed host development is introduced, its supported DB connection method must be documented in the Prisma integration PR.
 
-When Socket.IO is implemented, local development must also provide a documented `/socket.io` routing strategy consistent with the Realtime Contract.
+Do not expose PostgreSQL on unrestricted public interfaces.
 
----
+## 5. Environment Files
 
-# 6. Environment Files
+Never commit real secrets or real `.env`.
 
-Real secrets and local environment files must never be committed.
-
-Ignored:
-
-```text
-.env
-.env.*
-```
-
-Allowed examples:
+Allowed example files:
 
 ```text
 .env.example
 .env.*.example
 ```
 
-Example files contain only safe placeholders/defaults.
+Frontend-exposed `VITE_*` values are public and must contain no secret.
 
-Current container example variables:
-
-```text
-APP_PORT
-POSTGRES_DB
-POSTGRES_USER
-POSTGRES_PASSWORD
-```
-
-A real local password must replace the example placeholder in `.env`.
-
----
-
-# 7. Frontend Environment Variables
-
-Any variable exposed by Vite is shipped to the browser and must be treated as public.
-
-Frontend-exposed variables must never contain:
-
-- passwords;
-- database credentials;
-- JWT signing secrets;
-- private API keys;
-- server-only secrets.
-
-Variables exposed through mechanisms such as `VITE_*` must contain only browser-safe values.
-
----
-
-# 8. Standard Container Commands
-
-From repository root:
+## 6. Standard Container Commands
 
 ```bash
 cp .env.example .env
 docker compose up --build
-```
-
-Background mode:
-
-```bash
-docker compose up --build --detach
-```
-
-Check state:
-
-```bash
 docker compose ps
-```
-
-Logs:
-
-```bash
 docker compose logs --follow
-```
-
-Stop:
-
-```bash
 docker compose down
 ```
 
-The PostgreSQL named volume remains after normal `down`.
-
-To intentionally delete local database data:
+Intentional local DB destruction only:
 
 ```bash
 docker compose down --volumes
 ```
 
-This is destructive and must not be used casually.
+## 7. Dependency Workflow
 
----
-
-# 9. Dependency Installation
-
-Frontend and backend maintain their own:
+Frontend/backend maintain their own:
 
 ```text
 package.json
 package-lock.json
 ```
 
-Use:
+Use `npm ci` for clean/reproducible installs.
 
-```bash
-npm ci
-```
+Commit lockfile changes with dependency changes.
 
-for reproducible CI/clean installs.
+Do not commit `node_modules`.
 
-Do not commit:
+## 8. Prisma Migration Workflow
 
 ```text
-node_modules/
-```
-
-Dependency changes must commit the corresponding lockfile update.
-
----
-
-# 10. Prisma Schema and Migration Workflow
-
-Persistent P0 database schema changes use committed Prisma migrations.
-
-Required workflow:
-
-```text
-update Prisma schema
+edit schema
 → create migration
-→ inspect generated SQL
-→ add reviewed raw SQL if required
-→ test against clean PostgreSQL
-→ commit Prisma schema + migration together
+→ inspect SQL
+→ add reviewed raw SQL if needed
+→ test clean PostgreSQL
+→ commit schema + migration
 ```
 
-Use reviewed raw PostgreSQL migration SQL when Prisma cannot express a required database guarantee such as a partial or functional unique index.
+Do not use `prisma db push` as shared/main schema history.
 
-Do not use:
+Do not rewrite merged migration history.
+
+## 9. Shared Types Workflow
+
+One authoritative shared definition is required for cross-layer types.
+
+Do not maintain divergent frontend/backend enum/DTO copies.
+
+Runtime validation remains a backend responsibility.
+
+## 10. i18n-Ready Workflow
+
+User-facing text should be structured through shared translation keys.
+
+P0 may ship one default language.
+
+Complete EN/FR/ZH and a language switcher remain future scope.
+
+## 11. Git Branch Model
+
+Only long-lived development branch:
 
 ```text
-prisma db push
+main
 ```
 
-as the shared/main schema evolution strategy.
-
-Do not:
-
-- manually mutate the shared schema without a migration;
-- rewrite already-shared migration history;
-- edit an old merged migration to fix a new problem.
-
-Create a new corrective migration instead.
-
----
-
-# 11. Shared Types Workflow
-
-P0 must have one authoritative shared definition for cross-layer types defined by `07-SHARED_TYPES.md`.
-
-Frontend and backend must not independently maintain incompatible copies of:
-
-```text
-MembershipRole
-InvitationStatus
-VoteDecision
-Activity DTOs
-Proposal DTOs
-API error codes
-Realtime event payload types
-```
-
-The exact package/folder layout may be decided during implementation, but the result must provide one authoritative definition.
-
-Runtime validation remains required even when static TypeScript types are shared.
-
----
-
-# 12. P0 i18n-Ready Frontend Workflow
-
-P0 must be structured so user-facing text can move through one shared translation-key mechanism.
-
-Conceptual examples:
-
-```text
-t("trip.myTrips")
-t("trip.create")
-t("proposal.adopt")
-```
-
-P0 may ship with only the default language.
-
-Future scope unless separately promoted:
-
-- complete EN/FR/ZH translations;
-- language switcher;
-- locale persistence;
-- advanced locale-specific formatting.
-
-P0 requires architectural readiness, not full multilingual delivery.
-
----
-
-# 13. Git Branch Model
-
-`main` is the only long-lived development branch.
-
-Normal work happens on short-lived branches.
-
-Canonical prefixes:
+Short-lived prefixes:
 
 ```text
 feat/
@@ -399,24 +179,13 @@ chore/
 docs/
 ```
 
-Examples:
+Do not create replacement branches merely to manually copy old code.
 
-```text
-feat/trip-create
-fix/activity-version-conflict
-chore/prisma-bootstrap
-docs/p0-rest-contract
-```
+Synchronize the active branch with current main using normal Git integration.
 
-Do not create replacement branches merely to manually copy old feature code around.
+## 12. Main Protection / PR Workflow
 
-Keep the active branch synchronized with the current shared baseline using normal Git integration.
-
----
-
-# 14. Main Branch Protection Policy
-
-Team workflow requires:
+Team baseline:
 
 ```text
 no direct feature push to main
@@ -426,81 +195,57 @@ required CI must pass
 Squash and merge preferred
 ```
 
-A PR must not be merged merely because it compiles locally.
+Contract/business-rule conflicts must be resolved before merge.
 
-Shared-contract or business-rule conflicts must be resolved before merge.
+## 13. PR Scope
 
----
+Keep PRs focused and reviewable.
 
-# 15. Pull Request Scope
-
-Each PR should be focused and reviewable.
-
-Prefer separating infrastructure layers when independent.
-
-Examples of intentionally separate work:
+Separate independent infrastructure work such as:
 
 ```text
 containerization
-Prisma integration
-database schema/migrations
+Prisma/schema
+Auth
 HTTPS
-authentication
-realtime
+Realtime
 feature Vertical Slices
 ```
 
-A PR should state:
+PR description should state:
 
-- what it changes;
-- what it intentionally does not change;
-- how it was validated;
-- relevant follow-up work.
+```text
+what changes
+what does not change
+how validated
+follow-up work
+```
 
-Do not mix unrelated P1/P2 work into a P0 PR.
+## 14. Definition of Done
 
----
-
-# 16. Definition of Done
-
-A P0 task is not Done merely because code exists.
-
-Minimum Definition of Done:
+A task is Done only when:
 
 ```text
 implementation complete
-+
-basic tests / validation complete
-+
+tests/validation complete
 business behaviour checked
-+
-PR opened
-+
-code review completed
-+
+PR reviewed
 required CI passing
-+
-merged into main
+merged to main
 ```
 
-For Business Rule changes, acceptance must verify actual behaviour, not only code presence.
+Code existing on a feature branch is not Done.
 
-For example, an Adoption implementation is not Done merely because an `adopt()` function exists. Tests/review must verify the required majority and concurrency behaviour where applicable.
+## 15. Current CI
 
----
-
-# 17. Current GitHub Actions CI
-
-GitHub Actions runs on:
+Runs on:
 
 ```text
 pull_request → main
 push → main
 ```
 
-Current CI contains three jobs.
-
-## 17.1 Frontend checks
+### Frontend checks
 
 ```text
 npm ci
@@ -508,13 +253,7 @@ npm run lint
 npm run build
 ```
 
-Working directory:
-
-```text
-frontend/
-```
-
-## 17.2 Backend checks
+### Backend checks
 
 ```text
 npm ci
@@ -524,132 +263,80 @@ npm test
 npm run test:e2e
 ```
 
-Working directory:
+### Container checks
+
+Validate:
 
 ```text
-backend/
-```
-
-## 17.3 Container checks
-
-The container job depends on successful frontend/backend checks.
-
-It validates:
-
-```text
-Docker Compose configuration
+Compose config
 image builds
-service startup
-service health
-frontend HTTP response
+startup/health
+frontend HTTP
 /api/health through Nginx
 ```
 
-It uses `.env.example` for CI-safe configuration.
+Container job follows successful frontend/backend checks.
 
-On failure, service logs are printed.
+## 16. CI Growth
 
-At the end it removes containers, volumes, and orphans created by the CI run.
-
----
-
-# 18. CI Growth Rule
-
-CI must grow as shared infrastructure and high-risk domain behaviour are implemented.
-
-Future required coverage includes the relevant tests defined by:
+As features land, CI must add meaningful tests for:
 
 ```text
-04-DATABASE_CONTRACT.md
-05-REST_API_CONTRACT.md
-06-REALTIME_CONTRACT.md
+Prisma migrations/constraints
+Auth
+Activity OCC
+Proposal majority/rejection/adoption concurrency
+Realtime room authorization
+commit-before-broadcast
 ```
 
-Examples:
+Do not add placeholder jobs that validate nothing.
 
-- Prisma migration/schema validation;
-- database constraint integration tests;
-- Auth integration tests;
-- Activity OCC conflict tests;
-- Proposal majority/adoption race tests;
-- Realtime room authorization;
-- commit-before-broadcast behaviour;
-- reconnect/resync behaviour where practical.
+## 17. Health Check
 
-Do not add placeholder CI jobs that do not actually validate the intended behaviour.
+Current:
 
----
-
-# 19. Health Check Rule
-
-Current P0 baseline:
-
-```http
+```text
 GET /api/health
+→ 200
+→ {"status":"ok"}
 ```
 
-must return:
+Frozen semantics: this is a lightweight backend process/application health check, not a promise of deep dependency diagnostics.
 
-```http
-200 OK
-```
+Do not expose secrets/configuration.
 
-with:
+## 18. HTTPS
 
-```json
-{
-  "status": "ok"
-}
-```
+Current local/container baseline is HTTP.
 
-Health endpoints must remain lightweight and must not expose secrets or detailed internal configuration.
+HTTPS is separate infrastructure work.
 
-When database readiness becomes part of application readiness, the team must explicitly decide whether `/api/health` means process-only health or also database connectivity.
+When introduced, review Nginx and Auth cookie security together.
 
-Do not silently change health-check semantics.
-
----
-
-# 20. HTTPS Boundary
-
-Current local/container baseline uses HTTP.
-
-HTTPS is separate shared infrastructure work.
-
-Do not mix HTTPS implementation into unrelated feature PRs.
-
-When HTTPS is introduced, Auth cookie security settings and Nginx configuration must be reviewed together with `03-AUTH_CONTRACT.md`.
-
----
-
-# 21. Realtime Infrastructure Boundary
-
-Socket.IO is part of P0 architecture but is implemented separately from initial containerization.
+## 19. Realtime Infrastructure
 
 Realtime implementation must:
 
 ```text
-run inside NestJS backend
+run inside NestJS
 use authenticated identity
 support /socket.io
-update Nginx gateway
-update local development routing
-add realtime integration tests
+update Nginx proxy
+document local dev routing
+add integration tests
 ```
 
-Do not create a separate realtime domain-write path.
+No second realtime write API.
 
----
+## 20. Contract Change Rule
 
-# 22. Contract Change Rule
+Frozen contracts may not be silently changed inside feature implementation.
 
-Frozen shared contracts must not be silently changed inside feature implementation.
-
-Required process:
+Required flow:
 
 ```text
 identify conflict
-→ explain why current contract cannot support required behaviour
 → assess cross-slice impact
 → propose contract change
 → team review
@@ -657,27 +344,17 @@ identify conflict
 → implement
 ```
 
-A feature PR must not silently redefine:
+A feature PR must not silently redefine enum values, API paths, DTOs, ownership, vote math, DB invariants, or event names.
 
-- canonical enum values;
-- API paths;
-- shared DTO fields;
-- ownership semantics;
-- majority rules;
-- database invariants;
-- realtime event names.
+## 21. Product Scope Rule
 
----
+Implementation must not silently add P1/P2 functionality.
 
-# 23. Product Scope Change Rule
-
-Technical implementation must not silently expand P0 product scope.
-
-Examples outside P0 include:
+Outside P0 includes:
 
 ```text
 Trip Chat
-full Notifications Center
+Notification Center
 Friends
 PWA/offline
 Unscheduled Activity Pool
@@ -685,204 +362,38 @@ Activity Locking
 Owner Transfer
 Proposal Edit/Delete
 Vote retract
+Rejected archive
+Revise & Fork
 Files
 Budget
 Maps
 ```
 
-If a feature is promoted into P0, product scope/business rules must change before technical contracts and implementation.
-
----
-
-# 24. Repository Hygiene
+## 22. Repository Hygiene
 
 Never commit:
 
 ```text
 real secrets
-real .env files
+real .env
 node_modules/
 dist/
 coverage/
 *.tsbuildinfo
 *.log
 .DS_Store
-local PostgreSQL data directories
-temporary generated files unrelated to source
+local PostgreSQL data
+unrelated temporary generated files
 ```
 
-Current `.gitignore` covers the main Node/build/env/log/macOS artifacts.
+## 23. Documentation Sync
 
-Generated artifacts required for the application or migrations are committed only when intentionally part of project source/history.
-
----
-
-# 25. Security Baseline
-
-P0 environment/workflow must preserve these boundaries:
-
-```text
-Frontend does not connect directly to PostgreSQL.
-Database credentials remain server-side.
-Secrets are not committed.
-Secrets are not exposed through Vite client variables.
-Backend authorization never trusts frontend roles.
-Production backend container runs as non-root.
-PostgreSQL does not require a public host port in the container baseline.
-```
-
----
-
-# 26. Local Database Development Decision
-
-The current container baseline keeps PostgreSQL internal to the Compose network.
-
-When Prisma/database-backed local development is introduced, the team must document one supported development path.
-
-Possible choices:
-
-```text
-A. full Compose for DB-backed development
-
-or
-
-B. backend on host + PostgreSQL container exposed on localhost only
-```
-
-Do not introduce an unrestricted public PostgreSQL port.
-
-This decision belongs to Prisma/database integration work and does not block the current container baseline.
-
----
-
-# 27. Documentation Sync Rule
-
-When shared developer commands, ports, service names, or workflow requirements change, update relevant documentation in the same PR.
-
-At minimum, keep consistent:
+When shared commands, ports, service names, env variables, APIs, or workflow rules change, update relevant sources in the same PR:
 
 ```text
 README
 .env.example
 compose.yml
-CI workflow
-shared contracts
-```
-
-Documentation must not advertise P1/P2 functionality as current P0 core behaviour.
-
----
-
-# 28. Review Expectations by Change Type
-
-Infrastructure review:
-
-```text
-startup
-health
-networking
-secrets
-container behaviour
 CI
+contracts
 ```
-
-Database review:
-
-```text
-schema
-constraints
-migration safety
-transactions
-concurrency
-```
-
-REST review:
-
-```text
-authorization
-validation
-status/error codes
-DTO compatibility
-```
-
-Realtime review:
-
-```text
-room authorization
-commit-before-broadcast
-idempotency
-reconnect/resync
-```
-
-Feature Vertical Slice review:
-
-```text
-end-to-end business behaviour
-frontend/backend/database integration
-tests
-contract compliance
-```
-
----
-
-# 29. Transitional / Not-Yet-Implemented Items
-
-Current baseline already has or has accepted infrastructure for:
-
-```text
-React/Vite frontend
-NestJS backend
-/api health route
-frontend/backend CI
-Docker Compose
-Nginx frontend gateway
-PostgreSQL container
-container CI
-```
-
-Separate later work includes:
-
-```text
-Prisma integration
-final P0 migrations/schema implementation
-Auth implementation
-Socket.IO implementation
-/socket.io gateway support
-HTTPS
-shared-types physical package
-P0 i18n-ready implementation
-domain feature Vertical Slices
-```
-
-The presence of a contract does not mean the corresponding feature is already implemented.
-
----
-
-# 30. Review Checklist
-
-Before freezing this Environment & Workflow Contract, confirm:
-
-- [ ] Node baseline remains `v24.21.0`.
-- [ ] npm remains the package manager.
-- [ ] local frontend/backend ports remain `5173 / 3000`.
-- [ ] Compose services are exactly `frontend / backend / postgres`.
-- [ ] browser container entry remains localhost `${APP_PORT:-8080}`.
-- [ ] `/api` remains the REST prefix.
-- [ ] `/socket.io` is reserved for P0 realtime.
-- [ ] real `.env` files and secrets remain uncommitted.
-- [ ] Vite-exposed variables contain no secrets.
-- [ ] Prisma uses committed migrations rather than shared `db push`.
-- [ ] one authoritative shared-type source is required.
-- [ ] P0 frontend remains i18n-ready without requiring full multilingual delivery.
-- [ ] `main` remains protected by team workflow.
-- [ ] PR + non-author review + passing CI remain required.
-- [ ] Squash merge remains the preferred merge method.
-- [ ] branch prefixes remain `feat/ fix/ chore/ docs/`.
-- [ ] Definition of Done includes behaviour validation, review, CI, and merge.
-- [ ] current CI has frontend/backend/container checks.
-- [ ] CI expands with Prisma/Auth/Realtime/domain-risk features.
-- [ ] HTTPS remains separate shared infrastructure work.
-- [ ] realtime adds `/socket.io` routing without becoming a second write API.
-- [ ] shared contracts cannot be silently changed in feature PRs.
-- [ ] P1/P2 features cannot silently enter P0 implementation.
-- [ ] README/env/Compose/CI/contracts remain synchronized when shared infrastructure changes.

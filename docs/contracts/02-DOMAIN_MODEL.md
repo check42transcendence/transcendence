@@ -1,151 +1,78 @@
 # P0 Domain Model
 
-Status: Draft  
+Status: Frozen  
 Scope: P0  
 Owner: Tech Lead  
-Depends on: Frozen P0 Scope, Frozen P0 Business Rules v2, `00-DOMAIN_VOCABULARY.md`, `01-ARCHITECTURE.md`
+Depends on: `00-DOMAIN_VOCABULARY.md`, `01-ARCHITECTURE.md`
 
 ## Purpose
 
-This document defines the conceptual P0 domain model.
+This document defines P0 domain objects, relationships, lifecycle rules, and business invariants. SQL syntax, REST payload details, and Socket.IO payload details belong to later contracts.
 
-It describes the core domain objects, their relationships, lifecycle rules, and business invariants that must remain true across all Vertical Slices.
-
-It does not define final Prisma syntax, exact SQL types, exact transaction isolation levels, exact locking statements, REST status codes, or Socket.IO payloads. Those details belong to later technical contracts.
-
----
-
-# 1. Core Domain Objects
-
-P0 uses these core domain objects:
-
-- `User`
-- `Trip`
-- `TripMembership`
-- `Invitation`
-- `ItineraryDay`
-- `Activity`
-- `Proposal`
-- `Vote`
-
-`Owner` and `Member` are Membership Roles, not standalone entities.
-
-`My Trips`, `Trip Workspace`, `Itinerary`, `Adoption`, `Accept`, `Reject`, and `Leave Trip` are views, states, or actions rather than standalone P0 entities.
-
----
-
-# 2. Domain Relationship Overview
-
-```mermaid
-flowchart TD
-    U[User]
-    T[Trip]
-    TM[TripMembership]
-    I[Invitation]
-    D[ItineraryDay]
-    A[Activity]
-    P[Proposal]
-    V[Vote]
-
-    U -->|creates historically| T
-    U -->|has current relation| TM
-    TM -->|belongs to| T
-    T -->|has| I
-    I -->|targets| U
-    T -->|has fixed| D
-    D -->|contains| A
-    U -->|creates / last edits| A
-    T -->|contains| P
-    U -->|creates| P
-    P -->|has current votes| V
-    U -->|casts| V
-    P -->|may produce at most one current Activity| A
-```
-
-Exact foreign-key direction and database constraints are defined in the Database Contract.
-
----
-
-# 3. User
-
-A `User` is a registered account with unique Email and Username and password-based credentials.
-
-A User may create Trips, hold TripMemberships, receive Invitations, create/edit Activities, create Proposals, cast Votes, and Adopt eligible Proposals.
-
-An Invitation alone does not grant Trip Workspace access.
-
----
-
-# 4. Trip
-
-P0 Trip business data includes Title, Destination, Start Date, End Date, optional Description, historical Creator, and current Memberships.
-
-## Creator vs Owner
-
-The Trip Creator records who originally created the Trip.
-
-At creation:
+## 1. Core Domain Objects
 
 ```text
-Creator
-→ receives TripMembership(role = OWNER)
+User
+Trip
+TripMembership
+Invitation
+ItineraryDay
+Activity
+Proposal
+Vote
 ```
 
-Authorization must never use Creator identity as the Owner check.
+Owner/Member are Membership roles, not standalone entities.
 
-The current Owner is determined only by:
+## 2. Trip
+
+Creation requires:
 
 ```text
-TripMembership.role = OWNER
+Title
+Destination
+Start Date
+End Date
 ```
 
-## Trip immutability
+Description is optional.
 
-After creation, P0 does not allow modification of Title, Destination, Start Date, End Date, or Description.
+Invariant:
 
-The Owner may delete the Trip but may not edit those fields.
+```text
+endDate >= startDate
+```
 
-## Domain invariants
+After creation, P0 does not edit Trip base fields.
 
-- every Trip has exactly one current `OWNER` TripMembership;
-- a User may have at most one current TripMembership for the same Trip;
-- the Creator receives the initial `OWNER` Membership;
-- ownership cannot be transferred in P0;
-- the Owner cannot Leave Trip;
-- Title, Destination, Start Date, and End Date are required;
-- End Date must not be earlier than Start Date;
-- only the current Owner may invite Users or delete the Trip;
-- Trip base information is immutable after creation.
+Creator receives the initial `OWNER` Membership.
 
----
+Owner authority always comes from current Membership role, not `created_by`.
 
-# 5. TripMembership
+Owner may delete Trip and may not Leave.
 
-Every current Trip participant has one TripMembership with role:
+## 3. TripMembership
+
+Roles:
 
 ```text
 OWNER
 MEMBER
 ```
 
-## Domain invariants
+Invariants:
 
-- `Trip + User` has at most one current TripMembership;
-- every Trip has exactly one `OWNER` Membership;
-- Accepting an Invitation creates a `MEMBER` Membership;
-- Pending Invitation is not Membership;
-- a `MEMBER` may Leave Trip;
-- an `OWNER` may not Leave Trip;
-- removing Membership immediately removes future Workspace access;
-- leaving preserves historical Activity and Proposal contributions;
-- Votes belonging to a leaving Member must no longer remain active and must never reactivate automatically if the User later rejoins;
-- the accepted P0 persistence strategy is to physically delete that leaving Member's Vote rows for Proposals in the Trip within the Leave transaction.
+- one current Membership per `(Trip, User)`;
+- exactly one current Owner per Trip;
+- Owner cannot Leave;
+- Member may Leave;
+- Leave immediately removes Workspace access;
+- historical Activity/Proposal contributions remain;
+- the leaving Member’s Vote rows for that Trip are physically deleted so old Votes cannot reactivate after rejoin.
 
----
+## 4. Invitation
 
-# 6. Invitation
-
-Canonical P0 status values are:
+Status:
 
 ```text
 PENDING
@@ -153,171 +80,164 @@ ACCEPTED
 REJECTED
 ```
 
-The UI may display `Decline`, but the technical terminal status is `REJECTED`.
-
-## Domain invariants
-
-- only the current Owner may create an Invitation;
-- only registered Users may be invited;
-- Pending does not grant Workspace access;
-- at most one effective `PENDING` Invitation exists per Trip + Invitee;
-- an existing current participant cannot receive another effective Invitation;
-- Accept → `ACCEPTED` + create `MEMBER` Membership;
-- Reject → `REJECTED` + no Membership;
-- after Reject, the same User may be invited again later.
-
----
-
-# 7. Itinerary and ItineraryDay
-
-`ItineraryDay` is a first-class persisted P0 entity.
-
-All ItineraryDays are created when the Trip is created.
-
-Persistence of `ItineraryDay` is no longer a deferred P0 decision.
-
-## Domain invariants
-
-- exactly one ItineraryDay per Trip date;
-- Days cover the inclusive Start Date–End Date range;
-- Users cannot manually create or delete Days;
-- Trip dates cannot change after creation;
-- Days are not shifted or renumbered;
-- deleting the Trip deletes its Days;
-- every Activity must belong to one valid ItineraryDay of the same Trip;
-- P0 has no Unscheduled Activity Pool.
-
----
-
-# 8. Activity
-
-An Activity belongs to exactly one Trip and exactly one valid ItineraryDay of that same Trip.
-
-P0 Activity business data includes Title, Day/Date, Start Time, optional End Time, optional Location, optional Description, Creator, Last Editor, Last Edited At, and optional system creation timestamp.
-
-## Proposal origin
-
-An Activity may optionally originate from Proposal Adoption.
-
-The current data model represents this origin with:
-
-```text
-activity.proposal_id
-```
-
 Rules:
 
-- direct Activity creation → `proposal_id` is null;
-- Proposal Adoption → `proposal_id` references the adopted Proposal;
-- one Proposal may have at most one current Activity created from it;
-- an Activity may reference at most one source Proposal;
-- persistence must enforce this one-to-one current-adoption invariant.
+- Owner only creates Invitation;
+- target must already be registered;
+- one effective Pending Invitation per `(Trip, Invitee)`;
+- Pending grants no Workspace access;
+- Accept creates `MEMBER` Membership;
+- Reject creates no Membership;
+- Reject allows future re-invitation.
 
-The exact SQL type and unique-index syntax belong to the Database Contract.
+## 5. ItineraryDay
 
-## Other invariants
+`ItineraryDay` is a persisted first-class P0 entity.
 
-- Title is required;
-- Day/Date is required and must belong to the Activity's Trip;
-- Start Time is required;
-- End Time is optional but must not be earlier than Start Time;
-- Activities are ordered by Start Time within a Day;
-- overlap is allowed;
-- all current participants may CRUD Activities;
-- Creator does not give exclusive edit/delete permission;
-- Last Editor and Last Edited At are system-controlled;
-- P0 has no Activity attendance, Locking/Confirmed state, Unscheduled state, or drag-and-drop ordering.
+Trip creation generates every date from Start Date through End Date, inclusive.
 
-## Concurrent updates
+P0 has no Day CRUD and no Trip date mutation.
 
-A stale Activity update must not silently overwrite newer committed state.
+## 6. Activity
 
-The exact OCC mechanism belongs to the Database and REST contracts.
+Every Activity:
 
----
+- belongs to one Trip;
+- belongs to one valid ItineraryDay of the same Trip;
+- has required Title and Start Time;
+- may have End Time, Location, Description;
+- cannot cross midnight;
+- satisfies `endTime >= startTime` when End Time exists;
+- may overlap another Activity;
+- is sorted by Start Time;
+- records Creator, Last Editor, Created At, Last Edited At.
 
-# 9. Proposal
+All current Owner/Member participants may CRUD Activities.
 
-A Proposal is an optional group-decision object.
-
-P0 Proposal data includes Title, optional Description, Creator, Created At, and `is_adopted`.
-
-Meaning:
+P0 has no:
 
 ```text
-is_adopted = false
-→ Proposal is currently not adopted
-
-is_adopted = true
-→ Proposal has been manually adopted
+isLocked
+participants
+unscheduled state
+custom drag order
 ```
 
-`is_adopted` is the adoption marker. It is not itself the Proposal-to-Activity relation.
+### Concurrent update rule
 
-P0 has no automatic Passed/Rejected result status, no `ProposalStatus` lifecycle enum, no Early Rejection / kill-line, no rejected-Proposal archive, no Revise & Fork, no Deadline, no Proposal Edit/Delete, and no multi-option list.
+A stale Activity update must never silently overwrite a newer committed update.
 
----
+Exact OCC mechanics belong to 04/05.
 
-# 10. Vote
+## 7. Proposal
 
-A Vote represents one current explicit decision on one Proposal.
+Fields conceptually include:
 
-Persisted Vote decisions are:
+```text
+Title
+Description?
+Creator
+Created At
+Status
+```
+
+Status:
+
+```text
+PENDING
+ACCEPTED
+REJECTED
+```
+
+Initial status:
+
+```text
+PENDING
+```
+
+### Automatic rejection
+
+For a `PENDING` Proposal:
+
+```text
+N = current Owner + Member count
+R = current REJECT Vote count from those participants
+```
+
+If:
+
+```text
+R >= ceil(N / 2)
+```
+
+the backend atomically performs:
+
+```text
+PENDING → REJECTED
+```
+
+The check is based on current Membership and current Vote state.
+
+For still-PENDING Proposals, majority-affecting mutations include at least:
+
+```text
+Vote create/change
+Invitation Accept / Membership join
+Member Leave
+```
+
+Those mutations must recompute the threshold consistently.
+
+### REJECTED terminal rule
+
+`REJECTED` is terminal for P0.
+
+Once a Proposal becomes `REJECTED`:
+
+```text
+Vote creation/change is closed
+manual Adoption is closed
+REJECTED does not return to PENDING
+REJECTED does not become ACCEPTED
+later Membership changes do not reopen it
+```
+
+P0 defines no rejected archive or revise/re-submit flow.
+
+## 8. Vote
+
+Persisted decision:
 
 ```text
 AGREE
 REJECT
 ```
 
-A User with no Vote row is logically unvoted.
+No row means not voted.
 
-For UI/domain discussion and aggregate statistics, this may be described as `PENDING / NOT VOTED`, but `PENDING` is not a third persisted Vote decision value.
+One current Vote per `(Proposal, User)`.
 
-Derived voting counts may include:
-
-```text
-agreeCount
-rejectCount
-pendingCount
-participantCount
-```
-
-with:
+A participant may change:
 
 ```text
-pendingCount = participantCount - agreeCount - rejectCount
+AGREE ↔ REJECT
 ```
 
-Vote rates/percentages are derived presentation values. They do not create additional Proposal lifecycle states or automatic rejection behaviour.
+while the normal `PENDING` voting flow applies.
 
-## Domain invariants
+P0 defines no retract-to-no-vote action.
 
-- only current Trip participants may vote;
-- at most one current Vote exists per Proposal + User;
-- changing `AGREE ↔ REJECT` updates the existing current Vote;
-- no Vote row means not voted;
-- P0 has no persisted `ABSTAIN` value;
-- Vote creation/change is allowed only while `Proposal.is_adopted == false`;
-- once Adoption succeeds, Vote creation/change is locked;
-- when a Member leaves, the old Vote must not remain active or later reactivate.
+`ACCEPTED` Proposals do not accept Vote changes.
 
-## Retraction note
+`REJECTED` Proposals do not accept Vote creation/change in P0.
 
-The frozen P0 rules define not-voted = no Vote row, AGREE/REJECT as the two explicit decisions, and changing an existing Vote before Adoption.
-
-They do not currently define a separate user action for retracting an existing Vote back to not-voted.
-
-A retract endpoint/interaction must not be added unless the product rules explicitly include it.
-
----
-
-# 11. Strict Majority
+## 9. Strict Majority
 
 Let:
 
 ```text
-N = total number of current Trip participants
-A = number of current AGREE Votes
+N = current Trip participant count
+A = current AGREE count
 ```
 
 Adoption eligibility:
@@ -326,202 +246,119 @@ Adoption eligibility:
 A > N / 2
 ```
 
-Equivalent minimum:
+Equivalent:
 
 ```text
 A >= floor(N / 2) + 1
 ```
 
-## Denominator rule
+Owner and non-voters count in `N`.
 
-`N` always includes the Owner, every current MEMBER, and participants who have not voted.
+Former participants do not.
 
-Not-voted participants therefore still increase the denominator.
+## 10. Adoption
 
-Former participants are not included.
+For the currently defined normal flow, any current participant may request Adoption from a `PENDING` Proposal.
 
-`REJECT` votes may be counted and displayed, but P0 does not define an automatic mathematical rejection threshold. A Proposal is not automatically moved to `REJECTED`, archived, or frozen because of its Reject count.
+Backend must, at submit time:
 
----
-
-# 12. Adoption
-
-Any Current Trip Participant may request Adoption.
-
-A successful Adoption must behave atomically:
-
-1. verify current TripMembership;
-2. verify Proposal belongs to the Trip;
-3. verify `Proposal.is_adopted == false`;
+1. verify current Membership;
+2. verify Proposal belongs to Trip;
+3. verify Proposal is in the normal adoptable flow;
 4. recompute current participant count;
-5. recompute current AGREE Vote count;
-6. verify Strict Majority still holds at submission time;
-7. validate Activity scheduling inputs;
-8. create the Activity with `activity.proposal_id` referencing the Proposal;
-9. set `Proposal.is_adopted = true`;
-10. commit;
-11. broadcast only after commit.
+5. recompute current REJECT count and apply automatic rejection if threshold has been reached;
+6. recompute current AGREE count;
+7. require Strict Majority;
+8. validate Activity scheduling;
+9. create exactly one Proposal-sourced Activity;
+10. set status to `ACCEPTED`;
+11. commit before realtime broadcast.
 
-## Lost-majority race
+Frontend `canAdopt` is convenience state only and never replaces submit-time validation.
 
-The backend must not trust the majority state that existed when the user opened the Adoption form.
+### Lost-majority race
 
-```text
-A opens scheduling form while majority is satisfied
-→ B changes a Vote before A submits
-→ majority is no longer satisfied
-→ A submits
-→ backend rechecks current state and rejects Adoption
-```
-
-In this case:
-
-- no Activity is created;
-- `Proposal.is_adopted` remains `false`;
-- the request is treated as a business-state conflict.
-
-The exact REST status/error code belongs to the REST API Contract.
-
-## Concurrent Adoption
-
-Two Users may submit Adoption at almost the same time.
-
-Persistence must guarantee:
+If majority disappears before submit:
 
 ```text
-one Proposal
-→ at most one current Activity created by Adoption
+no Activity
+status remains PENDING unless the rejection rule itself triggered
+business conflict returned
 ```
 
-The exact locking/isolation strategy belongs to the Database Contract.
+### Concurrent Adoption
 
----
+At most one current Activity may originate from one Proposal.
 
-# 13. Delete Adopted Activity / Re-Adopt
+Persistence must prevent duplicate successful Adoption.
 
-When an Activity is deleted:
+## 11. Proposal-Sourced Activity Deletion
 
-- if `activity.proposal_id` is null, normal Activity deletion occurs;
-- if `activity.proposal_id` references a Proposal, deletion must also return that Proposal to the unadopted state.
-
-Conceptually:
+If an Activity has a Proposal origin:
 
 ```text
-delete Proposal-sourced Activity
-+
-set Proposal.is_adopted = false
+delete Activity
++ ACCEPTED → PENDING
 ```
 
-These changes must be atomic/consistent.
+in one atomic transaction.
 
-Afterward:
+Proposal and existing Vote rows remain.
 
-- Proposal remains;
-- existing valid Vote data remains;
-- voting is available again under pre-Adoption rules;
-- later Adoption must recompute and satisfy current Strict Majority;
-- a new Activity may then be created from that Proposal.
+Future Adoption recalculates current majority.
 
----
-
-# 14. Access Model
-
-Workspace access:
-
-```text
-current TripMembership exists
-```
-
-Owner-only authorization:
-
-```text
-TripMembership.role == OWNER
-```
-
-Historical `created_by` is never an authorization source.
-
----
-
-# 15. Important Lifecycles
-
-## Create Trip
+## 12. Important Lifecycles
 
 ```text
 Create Trip
-→ create Creator Membership(role = OWNER)
-→ generate all ItineraryDays
-→ commit
-```
+→ Trip
+→ OWNER Membership
+→ all ItineraryDays
 
-## Accept Invitation
+Accept Invitation
+→ PENDING → ACCEPTED
+→ MEMBER Membership
 
-```text
-PENDING
-→ ACCEPTED
-→ create Membership(role = MEMBER)
-```
-
-## Reject Invitation
-
-```text
-PENDING
-→ REJECTED
+Reject Invitation
+→ PENDING → REJECTED
 → no Membership
-```
 
-## Leave Trip
-
-```text
-MEMBER leaves
-→ remove Membership
-→ remove access
+Member Leave
+→ delete Member Votes in Trip
+→ delete Membership
+→ access ends
 → historical Activity/Proposal remain
-→ old Vote no longer remains active
+
+Create Proposal
+→ PENDING
+
+Pending Proposal reaches reject threshold
+→ REJECTED
+
+Pending Proposal + strict majority + manual Adopt
+→ Activity
+→ ACCEPTED
+
+Delete Proposal-sourced Activity
+→ ACCEPTED → PENDING
+
+Delete Trip
+→ delete complete Trip Workspace
 ```
 
-## Adopt Proposal
+## 13. Explicit P0 Domain Non-Goals
 
 ```text
-is_adopted = false
-→ current Strict Majority satisfied at submit time
-→ create Activity(proposal_id = proposal.id)
-→ is_adopted = true
+Trip Edit
+Owner Transfer
+Unscheduled Activity Pool
+Activity Lock
+Activity participants
+Proposal Edit/Delete
+Proposal Deadline/options
+Rejected archive
+Revise & Fork
+Vote retract
+automatic Proposal→Activity conversion
+full audit history
 ```
-
-## Delete adopted Activity
-
-```text
-delete Activity with proposal_id
-→ is_adopted = false
-→ existing Vote data remains
-→ future Adoption must satisfy current majority again
-```
-
-## Delete Trip
-
-Delete the complete Workspace, including Memberships, Invitations, Days, Activities, Proposals, and Votes.
-
-P0 has no Archive / Restore / Trash.
-
----
-
-# 16. Deferred Database Decisions
-
-The Domain Model has already fixed these domain facts:
-
-- Proposal-sourced Activity uses the `proposal_id` origin relation;
-- one Proposal may produce at most one current adopted Activity;
-- current Vote uniqueness is one Vote per `(Proposal, User)`;
-- departed Members' Votes must not remain active or later reactivate.
-
-The Database Contract still decides the exact technical mechanisms for:
-
-- UUID / PK implementation;
-- exact FK declarations;
-- exact unique-index syntax;
-- exact strategy for enforcing one `OWNER` Membership per Trip;
-- exact strategy for one effective `PENDING` Invitation;
-- exact physical Vote cleanup implementation;
-- exact transaction isolation / row-locking strategy;
-- exact foreign-key delete actions;
-- Activity OCC/version implementation.

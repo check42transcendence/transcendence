@@ -1,47 +1,56 @@
 # P0 Domain Vocabulary
 
-Status: Draft  
+Status: Frozen  
 Scope: P0  
 Owner: Tech Lead  
-Depends on: Frozen P0 Scope and Frozen P0 Business Rules v2 (2026-10-09)
+Product baseline: Frozen P0 Scope / Business Rules — updated 2026-10-11
 
 ## Purpose
 
-This document defines the canonical vocabulary used across P0 product documents, technical contracts, API design, database design, realtime events, and implementation.
-
----
+This document defines the canonical P0 business vocabulary. Later contracts may add technical detail, but must not change these meanings.
 
 ## 1. User
 
 A registered account with unique Email and Username.
 
----
+- Email: authentication identity and exact Invitation lookup; not public by default.
+- Username: normal visible identity and exact Invitation lookup.
 
 ## 2. Trip
 
-A shared travel-planning workspace.
+A shared travel-planning Workspace.
 
-In P0, Trip base information is fixed after creation.
+P0 Trip base information is immutable after creation:
 
----
+```text
+Title
+Destination
+Start Date
+End Date
+Description
+```
 
-## 3. Trip Creator
+Owner may delete the Trip.
 
-The User who originally creates a Trip.
+## 3. Creator vs Owner
 
-Creation is a historical fact.
+`Trip Creator` is the User who historically created the Trip.
 
-When the Trip is created, the Creator receives the `OWNER` Membership Role.
+`Owner` is the current participant whose:
 
-Authorization must use current Membership Role, not historical Creator identity.
+```text
+TripMembership.role == OWNER
+```
 
----
+Creator identity is not an authorization source.
+
+P0 has exactly one current Owner and no Owner Transfer.
 
 ## 4. TripMembership
 
 The current User-to-Trip relationship.
 
-Every current Trip participant has one TripMembership with role:
+Roles:
 
 ```text
 OWNER
@@ -50,43 +59,17 @@ MEMBER
 
 A Pending Invitation is not Membership.
 
----
+## 5. Current Trip Participant
 
-## 5. Owner
+A User with a current TripMembership (`OWNER` or `MEMBER`).
 
-The current participant whose TripMembership role is `OWNER`.
+Current Trip Participants form the denominator for Proposal voting rules.
 
-P0 has exactly one Owner per Trip.
+## 6. Invitation
 
-Only Owner may invite Users or delete the Trip.
+An Owner-created request to an already registered User.
 
-Owner cannot Leave Trip.
-
-P0 has no Owner Transfer.
-
----
-
-## 6. Member
-
-A current participant whose TripMembership role is `MEMBER`.
-
-A User normally becomes a Member by accepting an Invitation.
-
----
-
-## 7. Current Trip Participant
-
-A User with a current TripMembership whose role is `OWNER` or `MEMBER`.
-
-For Proposal majority calculations, all Current Trip Participants count in the denominator, including the Owner and users who have not voted.
-
----
-
-## 8. Invitation
-
-A request from the Owner to an already registered User.
-
-Canonical technical states:
+Status:
 
 ```text
 PENDING
@@ -94,65 +77,37 @@ ACCEPTED
 REJECTED
 ```
 
-The UI may display `Decline`, but the technical rejected state is `REJECTED`.
+Accept creates `MEMBER` Membership. Reject creates no Membership. Re-invitation after Reject is allowed.
 
----
+## 7. ItineraryDay
 
-## 9. My Trips
+A persisted calendar date inside the immutable Trip date range.
 
-Trips where the authenticated User currently has a TripMembership.
+All Days are generated during Trip creation.
 
-Pending Invitations are shown separately.
+P0 has no manual Day CRUD and no Unscheduled Activity Pool.
 
----
+## 8. Activity
 
-## 10. ItineraryDay
+A scheduled item bound to exactly one valid ItineraryDay of its Trip.
 
-One fixed calendar date inside the Trip Start Date–End Date range.
+P0 Activity:
 
-All Days are generated when the Trip is created.
+- has required Title and Start Time;
+- may have End Time, Location, Description;
+- records Creator and Last Editor;
+- does not cross midnight;
+- has no lock/confirmed state;
+- has no participant list;
+- has no custom drag order.
 
-P0 does not edit Trip dates, manually add/remove Days, or use an Unscheduled Activity Pool.
+An Activity may be created directly or through Proposal Adoption.
 
----
+## 9. Proposal
 
-## 11. Activity
+An optional suggestion used for group decision-making.
 
-One scheduled item belonging to one valid ItineraryDay of its Trip.
-
-An Activity may be created directly or created as the result of Proposal Adoption.
-
-P0 Activity data includes Creator and recent-editor information.
-
-P0 has no Activity Locking or Unscheduled state.
-
----
-
-## 12. Activity Creator
-
-The User who originally creates an Activity.
-
-Creator status does not grant exclusive edit/delete permission.
-
----
-
-## 13. Activity Last Editor
-
-The User who most recently saves an Activity update.
-
-The system also records the last-edited time.
-
-This is not a full audit log.
-
----
-
-## 14. Proposal
-
-An optional suggestion used to collect opinions before a group decision.
-
-A Proposal is not required before creating an Activity.
-
-A Proposal contains a persisted status:
+Persisted status:
 
 ```text
 PENDING
@@ -160,170 +115,168 @@ ACCEPTED
 REJECTED
 ```
 
-Canonical meaning:
+Meaning:
 
 ```text
 PENDING
-→ Proposal is open for normal voting and may be manually Adopted when the current Strict Majority rule is satisfied.
+→ normal voting state; may be manually Adopted when Strict Majority is satisfied.
 
 ACCEPTED
-→ Proposal has been successfully Adopted and has one current Proposal-sourced Activity.
+→ a successful manual Adoption has created one current Proposal-sourced Activity.
 
 REJECTED
-→ Proposal has crossed the rejection threshold.
-
-Whether Vote changes or manual Adoption remain available after `REJECTED` is not yet frozen.
+→ the automatic rejection threshold was reached; this is terminal in P0.
 ```
 
-`ProposalStatus` is a state field. It is not itself the Proposal-to-Activity relationship.
+Proposal status is server-controlled.
 
-P0 defines an automatic rejection threshold for a `PENDING` Proposal.
+### Automatic rejection threshold
 
 Let:
 
 ```text
-N = number of current Trip participants (OWNER + MEMBER)
-R = number of current REJECT votes from those current participants
+N = number of Current Trip Participants
+R = number of current REJECT Votes from those participants
 ```
 
-The Proposal is automatically rejected when:
+For a `PENDING` Proposal:
 
 ```text
 R >= ceil(N / 2)
+→ status becomes REJECTED automatically
 ```
-
-At that moment:
-
-```text
-Proposal.status: PENDING → REJECTED
-```
-
-This is the Early Rejection / rejection kill-line.
-
-It is intentionally asymmetric with Adoption:
-
-```text
-ACCEPTED requires AGREE > N / 2 and a manual Adopt action.
-REJECTED triggers automatically once R >= ceil(N / 2).
-```
-
-For even `N`, exactly half REJECT is sufficient because a strict AGREE majority has become mathematically impossible.
 
 Examples:
 
 ```text
-N = 4 → reject threshold = 2
-N = 5 → reject threshold = 3
-N = 6 → reject threshold = 3
+N=4 → 2 REJECT triggers
+N=5 → 3 REJECT triggers
+N=6 → 3 REJECT triggers
 ```
 
----
+This threshold is mathematically the point at which a strict AGREE majority is impossible.
 
-## 15. Vote
+### REJECTED behaviour in P0
 
-One current decision by one Current Trip Participant on one Proposal.
+`REJECTED` is terminal for P0.
 
-Canonical values:
+After a Proposal becomes `REJECTED`:
+
+```text
+no further Vote creation/change
+no manual Adoption
+no REJECTED → PENDING transition
+no REJECTED → ACCEPTED transition
+no automatic reopening after later Membership changes
+```
+
+Rejected archive, Revise & Fork, and other post-rejection workflows remain outside P0.
+
+## 10. Vote
+
+One current explicit decision by one Current Trip Participant on one Proposal.
+
+Persisted values:
 
 ```text
 AGREE
 REJECT
 ```
 
-No Vote record means the User has not voted.
+No Vote row means “not voted”.
 
-For UI/statistics purposes, this not-voted state may be displayed as:
+UI may display that logical state as:
 
 ```text
 PENDING
 ```
 
-`PENDING` is a derived logical/UI state only. It is **not** a third persisted `VoteDecision` value.
+but `PENDING` is not a persisted VoteDecision.
 
-A User has at most one current Vote per Proposal.
+One User has at most one current Vote per Proposal.
 
-`PENDING` Proposals accept Vote creation/change. `ACCEPTED` Proposals are closed to Vote changes by the existing Adoption rules.
+P0 does not define Vote retraction back to no Vote.
 
-Vote behaviour while `REJECTED` is not yet frozen.
+## 11. Strict Majority
 
----
-
-## 16. Strict Majority
-
-A Proposal is eligible for Adoption only when:
+Let:
 
 ```text
-AGREE votes > Current Trip Participant count / 2
+N = Current Trip Participant count
+A = current AGREE Vote count
 ```
 
-Equivalent minimum:
+Manual Adoption eligibility:
 
 ```text
-floor(currentParticipantCount / 2) + 1
+A > N / 2
 ```
 
-The denominator includes the Owner and non-voters.
+Equivalent:
 
-Vote statistics may expose:
+```text
+requiredAgreeCount = floor(N / 2) + 1
+```
+
+Owner and non-voters are included in `N`.
+
+## 12. Vote Statistics
+
+Derived counts may include:
 
 ```text
 agreeCount
 rejectCount
 pendingCount
 participantCount
+requiredAgreeCount
 ```
 
-where:
+with:
 
 ```text
 pendingCount = participantCount - agreeCount - rejectCount
 ```
 
-Rates/percentages are derived presentation values and are not persisted voting states.
+Percentages are presentation values, not persisted state.
 
-For a `PENDING` Proposal, reaching the rejection threshold automatically changes status to `REJECTED` and closes further Vote changes and Adoption.
+## 13. Adoption
 
-P0 still does not add a rejected-Proposal archive view or Revise & Fork workflow.
+Adoption is a manual action by any Current Trip Participant.
 
----
-
-## 17. Adoption
-
-The manual action that accepts an eligible Proposal and creates one Activity from it.
-
-Any Current Trip Participant may Adopt when the current strict-majority rule is satisfied.
-
-A successful Adoption performs:
+For the currently defined normal flow:
 
 ```text
-Proposal.status: PENDING → ACCEPTED
+PENDING
++ current Strict Majority at submit time
+→ create Proposal-sourced Activity
+→ ACCEPTED
 ```
 
-and creates one Proposal-sourced Activity.
+Adoption is not automatic.
 
-P0 allows at most one current Activity created from the same Proposal.
+At most one current Activity may originate from one Proposal.
 
-Concurrent Adoption attempts must not create duplicates.
+## 14. Delete Proposal-Sourced Activity
 
-If that accepted Proposal-sourced Activity is deleted, the Proposal returns to:
+Deleting the current Activity created through an accepted Proposal performs atomically:
 
 ```text
-status: ACCEPTED → PENDING
+delete Activity
+ACCEPTED → PENDING
 ```
 
-and can be Adopted again only after the current majority requirement is satisfied again.
+Proposal and existing Votes remain.
 
----
+Future Adoption must recompute current majority.
 
-## 18. Realtime Update
+## 15. Realtime Update
 
-A committed Activity, Proposal, Vote, or Adoption change pushed to other connected Trip participants.
+A notification about already-committed shared state.
 
-Realtime delivery is not the authoritative stored state.
+Realtime is not the authoritative persisted state.
 
----
-
-# Canonical technical values
+## Canonical technical values
 
 ```text
 MembershipRole: OWNER | MEMBER
@@ -332,6 +285,26 @@ VoteDecision: AGREE | REJECT
 ProposalStatus: PENDING | ACCEPTED | REJECTED
 ```
 
-# Explicit P0 exclusions
+## Explicit P0 exclusions
 
-P0 excludes Chat, Notification Center, Friends, Budget, Files, Maps, Activity Locking, Unscheduled Activities, Proposal Deadline/Edit/Delete, automatic Proposal rejection/kill-line, rejected-Proposal archive, Revise & Fork, Ownership Transfer, Editor/Viewer roles, Archive/Restore, and full Activity audit history.
+P0 excludes:
+
+```text
+Trip Chat
+Notification Center
+Friends
+Budget
+Files
+Maps
+PWA/offline mutations
+Activity Locking
+Unscheduled Activity Pool
+Activity participants
+Owner Transfer
+Proposal Edit/Delete
+Proposal Deadline/options
+Rejected-Proposal archive
+Revise & Fork
+Vote retract
+full audit history
+```

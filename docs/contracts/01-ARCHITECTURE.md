@@ -1,30 +1,37 @@
 # P0 Architecture Contract
 
-Status: Draft  
+Status: Frozen  
 Scope: P0  
 Owner: Tech Lead  
-Depends on: Frozen P0 Scope, Frozen P0 Business Rules v2, `00-DOMAIN_VOCABULARY.md`
+Depends on: `00-DOMAIN_VOCABULARY.md`
+
+## Purpose
+
+This document defines system structure and responsibility boundaries. Detailed business lifecycle rules belong to `02-DOMAIN_MODEL.md`.
 
 ## 1. Technology Baseline
 
-- Frontend: React + TypeScript + Vite
-- Backend: NestJS + TypeScript
-- Database: PostgreSQL
-- ORM: Prisma
-- Realtime: Socket.IO in the NestJS backend
-- Local/container orchestration: Docker Compose
-- Package manager: npm
-- Node.js: root `.nvmrc`
+```text
+Frontend: React + TypeScript + Vite
+Backend: NestJS + TypeScript
+Database: PostgreSQL
+ORM: Prisma
+Realtime: Socket.IO inside NestJS
+Containers: Docker + Docker Compose
+Gateway: Nginx
+Package manager: npm
+Node.js: root .nvmrc
+```
 
 ## 2. High-Level Architecture
 
 ```text
 Browser
-   ↓
+  ↓
 React Frontend
-   ↓ REST / Socket.IO
+  ↓ REST / Socket.IO
 NestJS Backend
-   ↓ Prisma
+  ↓ Prisma
 PostgreSQL
 ```
 
@@ -32,144 +39,76 @@ Backend/database state is authoritative.
 
 ## 3. Frontend Responsibilities
 
-The frontend:
+Frontend:
 
 - renders UI;
-- collects input;
+- collects user input;
 - calls REST APIs;
-- receives realtime updates;
+- receives realtime notifications;
 - displays loading/success/error/conflict states;
-- displays Activity recent-editor information;
-- uses one shared i18n / translation-key mechanism for user-facing text.
+- displays server-provided recent-editor data;
+- uses a shared translation-key mechanism.
 
-P0 is i18n-ready but does not require full multilingual delivery or a Language Switcher.
-
-Frontend UI is not a security boundary.
+Frontend is not a security boundary and must not decide authoritative domain state.
 
 ## 4. Backend Responsibilities
 
-The backend owns:
+Backend owns:
 
 - authentication;
 - authorization;
-- Membership Role checks;
-- business-rule validation;
-- Proposal majority/adoption validation;
-- Activity OCC/conflict handling;
-- system-controlled editor/time metadata;
+- Membership/role checks;
+- domain/business-rule validation;
+- Proposal/Vote/Adoption logic;
+- Activity concurrency handling;
+- transaction orchestration;
 - persistence;
-- realtime broadcast.
+- realtime emission after commit.
 
-## 5. REST Boundary
+## 5. Database Responsibilities
 
-REST is the primary command/query interface.
+PostgreSQL stores authoritative P0 state and enforces reviewed persistence invariants where practical.
 
-P0 includes REST commands for:
+Prisma is the application ORM. Required PostgreSQL-specific constraints may use reviewed migration SQL.
 
-- auth;
-- Trip create/delete;
-- invitations;
-- leave;
-- Activity CRUD;
-- Proposal create/view;
-- Vote create/change;
-- Proposal Adoption.
+## 6. Domain State Ownership
 
-P0 has no Edit Trip command.
+Proposal, Vote, Membership, Invitation, Activity, and Adoption lifecycle rules belong to the backend domain layer.
 
-All endpoints use global prefix:
+Frontend may display current state but may not directly set server-controlled lifecycle fields.
+
+Detailed lifecycle rules are defined in `02-DOMAIN_MODEL.md`.
+
+## 7. REST Boundary
+
+REST is the P0 command/query interface.
+
+All REST endpoints use:
 
 ```text
 /api
 ```
 
-## 6. Realtime Boundary
+REST owns domain writes. Socket.IO is not a second write API.
 
-Successful collaborative mutation flow:
+## 8. Realtime Boundary
 
-```text
-Validate
-→ Persist / Commit
-→ Broadcast
-```
-
-Realtime covers:
-
-- Activity create/update/delete;
-- recent Activity editor/time;
-- Proposal create;
-- Vote changes;
-- Proposal Adoption state changes.
-
-Socket.IO is not a second database write path.
-
-## 7. Proposal Status / Adoption Boundary
-
-Proposal stores one canonical status:
+Shared mutation flow:
 
 ```text
-PENDING
-ACCEPTED
-REJECTED
+REST request
+→ authenticate / authorize
+→ validate business rules
+→ database transaction
+→ COMMIT
+→ realtime notification
 ```
 
-Successful manual Adoption changes:
-
-```text
-PENDING → ACCEPTED
-```
-
-and creates one Proposal-sourced Activity.
-
-Deleting that Proposal-sourced Activity changes:
-
-```text
-ACCEPTED → PENDING
-```
-
-The status field is not the Activity relation itself.
-
-A separate database relation identifies which Activity originated from which Proposal so the one-to-one Adoption rule and delete/re-adopt behaviour can be enforced.
-
-`REJECTED` is a valid Proposal state.
-
-For majority-affecting mutations while a Proposal is `PENDING`, the backend recomputes:
-
-```text
-N = current Trip participants
-R = current REJECT votes from current participants
-```
-
-and automatically performs:
-
-```text
-PENDING → REJECTED
-```
-
-when:
-
-```text
-R >= ceil(N / 2)
-```
-
-This check belongs to the authoritative backend/database transaction boundary, never to frontend-only logic.
-
-Exact fields/constraints belong to the Database Contract.
-
-## 8. Backend Module Principle
-
-Expected capability areas:
-
-- auth;
-- users;
-- trips/membership;
-- invitations;
-- itinerary/activities;
-- proposals/votes/adoption;
-- realtime;
-- shared/common.
+Only committed changes are broadcast.
 
 ## 9. Runtime Services
+
+Canonical Compose services:
 
 ```text
 frontend
@@ -177,35 +116,25 @@ backend
 postgres
 ```
 
-No Redis, queues, microservices, or separate realtime service in P0.
+P0 adds no Redis, queue, microservice, or separate realtime service.
 
-## 10. Ports
-
-```text
-Frontend 5173
-Backend 3000
-PostgreSQL 5432
-```
-
-## 11. Current Proxy Note
-
-Current bootstrap proxy:
+## 10. Ports / Browser Paths
 
 ```text
-/api → http://127.0.0.1:3000
+Vite development: 5173
+NestJS: 3000
+PostgreSQL internal: 5432
+Container browser entry: 8080 by default
+REST: /api
+Socket.IO: /socket.io
 ```
 
-is transitional until Docker Compose service routing is added.
+The Vite `/api → 127.0.0.1:3000` proxy is a development-only path.
 
-## 12. Deferred Details
+Container traffic uses Nginx and Compose service DNS.
 
-Later contracts define:
+## 11. i18n Boundary
 
-- exact DB tables/fields;
-- OWNER uniqueness mechanism;
-- Proposal-to-Activity relation field direction;
-- REST DTOs/errors;
-- Socket.IO event names/payloads;
-- OCC implementation;
-- Adoption transaction details;
-- exact i18n library.
+P0 is i18n-ready through translation keys.
+
+Complete EN/FR/ZH coverage and language switching remain outside P0 unless separately promoted.
