@@ -6,8 +6,10 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+RUN DATABASE_URL=postgresql://transcendence:build_only@postgres:5432/transcendence \
+    npm run prisma:generate
 RUN npm run build
-RUN npm prune --omit=dev
+RUN npm prune --omit=dev --omit=peer
 
 
 FROM node:24.21.0-bookworm-slim AS runtime

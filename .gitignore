@@ -17,3 +17,6 @@ coverage/
 
 # macOS
 .DS_Store
+
+# Generated Prisma Client
+backend/src/generated/prisma/
