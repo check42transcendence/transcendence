@@ -43,7 +43,11 @@ General conventions:
 - persisted audit timestamps use PostgreSQL `TIMESTAMPTZ`;
 - Trip/Itinerary calendar dates use `DATE`;
 - P0 Activity schedule times use `TIME`;
-- enum-like values are represented by PostgreSQL/Prisma enums where practical;
+- the accepted P0 finite-value fields below use PostgreSQL native ENUM types through reviewed Prisma migrations:
+  - `member_role`: `OWNER | MEMBER`;
+  - `vote_decision`: `AGREE | REJECT`;
+  - `invitation_status`: `PENDING | ACCEPTED | REJECTED`;
+- P0 defines no `proposal_status` enum; Proposal adoption state remains `proposal.is_adopted BOOLEAN`;
 - nullable fields are used only when the product rule genuinely allows absence.
 
 P0 Activity does **not** support crossing midnight.
@@ -126,7 +130,7 @@ A PostgreSQL functional unique index or an equivalent reviewed implementation is
 |---|---|---:|---|
 | `id` | UUID | No | Primary Key |
 | `title` | VARCHAR(120) | No | Required |
-| `destination` | VARCHAR(120) | No | Required |
+| `destination` | VARCHAR(120) | No | Required P0 Trip field; not a Maps/navigation feature |
 | `description` | TEXT | Yes | Optional |
 | `start_date` | DATE | No | Required |
 | `end_date` | DATE | No | Required |
@@ -173,7 +177,7 @@ The check may be implemented in backend validation and/or a database check const
 | `id` | UUID | No | Primary Key |
 | `trip_id` | UUID | No | FK → `trip.id` |
 | `user_id` | UUID | No | FK → `user.id` |
-| `role` | ENUM | No | `OWNER` or `MEMBER` |
+| `role` | PostgreSQL ENUM `member_role` | No | `OWNER` or `MEMBER` |
 | `joined_at` | TIMESTAMPTZ | No | Server/DB generated |
 
 ## Enum
@@ -235,7 +239,7 @@ P0 does not allow deleting or changing the Owner Membership independently.
 | `trip_id` | UUID | No | FK → `trip.id` |
 | `invited_by` | UUID | No | FK → `user.id` |
 | `invitee_id` | UUID | No | FK → `user.id` |
-| `status` | ENUM | No | `PENDING / ACCEPTED / REJECTED` |
+| `status` | PostgreSQL ENUM `invitation_status` | No | `PENDING / ACCEPTED / REJECTED` |
 | `created_at` | TIMESTAMPTZ | No | Server/DB generated |
 | `responded_at` | TIMESTAMPTZ | Yes | Set on Accept/Reject |
 
@@ -520,6 +524,19 @@ No normal P0 API may directly toggle `is_adopted`.
 
 It changes only through the Adoption / adopted-Activity deletion transactions defined below.
 
+P0 must **not** add:
+
+```text
+proposal_status
+VOTING
+ACCEPTED
+REJECTED
+```
+
+as a Proposal lifecycle enum.
+
+P0 also does not persist Proposal `updated_by` / `updated_at` audit fields, because Proposal editing/audit history is outside the frozen P0 scope.
+
 ---
 
 # 11. `proposal_vote`
@@ -531,7 +548,7 @@ It changes only through the Adoption / adopted-Activity deletion transactions de
 | `id` | UUID | No | Primary Key |
 | `proposal_id` | UUID | No | FK → `proposal.id` |
 | `user_id` | UUID | No | FK → `user.id` |
-| `decision` | ENUM | No | `AGREE` or `REJECT` |
+| `decision` | PostgreSQL ENUM `vote_decision` | No | `AGREE` or `REJECT` |
 | `voted_at` | TIMESTAMPTZ | No | Set/updated when current Vote changes |
 
 ## Enum
@@ -557,6 +574,19 @@ no proposal_vote row
 =
 not voted / logically pending
 ```
+
+Aggregate P0 vote statistics may derive:
+
+```text
+R = count of current proposal_vote rows with decision = REJECT
+P = N - A - R
+```
+
+where `P` is the logical/UI pending count.
+
+`P`, vote percentages, and rejection percentages are derived query/presentation values. They are not stored voting states.
+
+P0 does not define an Early Rejection / kill-line, automatic Proposal rejection, rejected-Proposal archive, or Revise & Fork lifecycle.
 
 ## One current Vote
 
