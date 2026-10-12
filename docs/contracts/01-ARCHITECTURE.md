@@ -18,12 +18,14 @@ Database: PostgreSQL
 ORM: Prisma
 Realtime: Socket.IO inside NestJS
 Containers: Docker + Docker Compose
-Gateway: Nginx
+Gateway: Nginx with local TLS termination
 Package manager: npm
 Node.js: root .nvmrc
 ```
 
 ## 2. High-Level Architecture
+
+Application responsibilities remain:
 
 ```text
 Browser
@@ -34,6 +36,20 @@ NestJS Backend
   ↓ Prisma
 PostgreSQL
 ```
+
+For the containerized application, browser traffic enters through Nginx:
+
+```text
+Browser
+  ↓ HTTPS :8443
+Nginx Gateway
+  ├→ React static frontend
+  └→ /api → NestJS Backend :3000
+                 ↓ Prisma
+             PostgreSQL :5432
+```
+
+HTTP on the container browser port redirects to the HTTPS entry.
 
 Backend/database state is authoritative.
 
@@ -124,14 +140,17 @@ P0 adds no Redis, queue, microservice, or separate realtime service.
 Vite development: 5173
 NestJS: 3000
 PostgreSQL internal: 5432
-Container browser entry: 8080 by default
+Container HTTP redirect entry: APP_PORT, default 8080
+Container HTTPS browser entry: 8443
 REST: /api
 Socket.IO: /socket.io
 ```
 
 The Vite `/api → 127.0.0.1:3000` proxy is a development-only path.
 
-Container traffic uses Nginx and Compose service DNS.
+Container browser traffic uses Nginx. Nginx terminates local TLS on port `443` inside the frontend container, exposed as host port `8443`. HTTP traffic on the host container entry redirects to HTTPS.
+
+Cross-container traffic uses Compose service DNS.
 
 ## 11. i18n Boundary
 
