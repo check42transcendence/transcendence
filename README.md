@@ -14,25 +14,18 @@ proposals, voting, and real-time collaboration.
 
 Currently implemented:
 
-- React frontend with TypeScript and Vite.
-- NestJS backend with TypeScript.
-- `GET /api/health` endpoint.
-- Frontend connectivity check with success and failure states.
-- Vite development proxy for local `/api` requests.
-- Production frontend image served by Nginx.
-- Production backend image running as a non-root user.
-- PostgreSQL container with persistent storage.
-- Prisma ORM integration using the PostgreSQL driver adapter.
-- NestJS database module with managed startup and shutdown connections.
-- Prisma schema validation and Client generation in CI and Docker builds.
-- Docker Compose startup, service health checks, and internal networking.
-- GitHub Actions checks for the frontend, backend, and containerized stack.
+- React/TypeScript frontend with Vite and a backend connectivity check.
+- NestJS backend with a `GET /api/health` endpoint.
+- PostgreSQL with persistent storage and Prisma database integration.
+- Docker Compose stack with service health checks and a non-root backend.
+- Nginx gateway with local HTTPS and HTTP-to-HTTPS redirection.
+- GitHub Actions checks for the frontend, backend, Prisma, and container stack.
 
 Domain database models and migrations, authentication, travel features,
-real-time collaboration, and HTTPS are not implemented yet.
+and real-time collaboration are not implemented yet.
 
-The current containerized stack uses HTTP for local development.
-HTTPS will be added in a separate infrastructure change.
+HTTPS currently uses a local self-signed certificate. Public deployment
+and publicly trusted certificates are not configured yet.
 
 ## Project Structure
 
@@ -40,6 +33,7 @@ HTTPS will be added in a separate infrastructure change.
 - `backend/`: NestJS application, Prisma configuration and schema, and
   backend Dockerfile.
 - `compose.yml`: frontend, backend, and PostgreSQL services.
+- `scripts/generate-local-cert.sh`: local TLS certificate generation.
 - `.env.example`: example local environment configuration.
 - `.nvmrc`: Node.js version used for development.
 - `.github/workflows/ci.yml`: automated project checks.
@@ -50,6 +44,7 @@ HTTPS will be added in a separate infrastructure change.
 
 - Git.
 - Docker with Docker Compose support.
+- OpenSSL supporting `req -addext` (for example, OpenSSL 3).
 
 Create the local environment file:
 
@@ -61,6 +56,17 @@ Replace the example PostgreSQL password in `.env` with a local
 development password. The `.env` file is ignored by Git and must not
 be committed.
 
+Generate your local certificate once from the repository root:
+
+```bash
+sh scripts/generate-local-cert.sh
+```
+
+The certificate and private key are stored in `certs/`, ignored by Git,
+and mounted read-only into Nginx. The script refuses to overwrite existing
+files. If your Mac's OpenSSL does not support `-addext`, run the script in
+your Linux development container with the repository mounted.
+
 Build and start the complete application:
 
 ```bash
@@ -70,14 +76,23 @@ docker compose up --build
 Open:
 
 ```text
-http://localhost:8080
+https://localhost:8443
 ```
 
 The backend health endpoint is available through the Nginx gateway at:
 
 ```text
-http://localhost:8080/api/health
+https://localhost:8443/api/health
 ```
+
+HTTP on port 8080 redirects to HTTPS on port 8443. The HTTPS port and
+redirect destination are currently fixed for local use.
+
+For browser access, trust your own `certs/localhost.crt` for SSL in your
+local certificate store. On macOS, import it into the **login** keychain
+using Keychain Access, then set its **Secure Sockets Layer (SSL)** trust
+to **Always Trust**. Restart the browser. Each developer generates and
+trusts their own certificate; only the `.crt` file is imported.
 
 To run the application in the background:
 
@@ -132,17 +147,6 @@ The complete backend requires a reachable PostgreSQL database and a
 `DATABASE_URL`. Use the containerized application workflow above to run
 the integrated frontend, backend, and database stack.
 
-Prisma Client is generated locally and is not committed to Git. Run the
-following commands after changing `prisma/schema.prisma` or pulling schema
-changes from another branch:
-
-```bash
-cd backend
-export DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DATABASE'
-npm run prisma:validate
-npm run prisma:generate
-```
-
 To run the backend outside Compose, provide a `DATABASE_URL` for a
 PostgreSQL instance reachable from the current environment:
 
@@ -153,6 +157,14 @@ export DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DATABASE'
 npm run prisma:generate
 npm run start:dev
 ```
+
+Replace the URL placeholders with your database settings. Compose's
+PostgreSQL service is not published to the host, so this workflow requires
+a separately reachable database.
+
+Prisma Client is generated locally and ignored by Git. Re-run
+`npm run prisma:generate` from `backend/` after changing or pulling schema
+changes.
 
 Start the frontend in another terminal:
 
@@ -199,12 +211,19 @@ npm run test:e2e
 
 Containerized stack:
 
+Generate the local certificate first using the setup instructions above.
+
 ```bash
 docker compose config --quiet
 docker compose up --build --detach --wait
-curl --fail http://127.0.0.1:8080/api/health
+docker compose exec -T frontend nginx -t
+curl -I http://localhost:8080/api/health
+curl --cacert certs/localhost.crt --fail https://localhost:8443/api/health
 docker compose down
 ```
+
+Expect HTTP `308` with an HTTPS redirect, followed by HTTPS `200` and
+`{"status":"ok"}`. `--cacert` verifies the locally generated certificate.
 
 ## Continuous Integration
 
@@ -214,8 +233,8 @@ GitHub Actions runs the following jobs for pull requests targeting
 - `Frontend checks`: dependency installation, lint, and production build.
 - `Backend checks`: dependency installation, Prisma schema validation,
   Prisma Client generation, lint, build, unit tests, and end-to-end tests.
-- `Container checks`: Compose validation, image builds, service startup,
-  health checks, and HTTP verification through the Nginx gateway.
+- `Container checks`: temporary certificate generation, Compose validation,
+  image builds, health checks, HTTP redirection, and HTTPS page/API checks.
 
 ## Resources
 
