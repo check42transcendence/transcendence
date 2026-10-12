@@ -1,46 +1,22 @@
-import { useState } from 'react'
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import AuthPage from './pages/AuthPage';
 
-function App() {
-  const [status, setStatus] = useState('Not checked')
-  const [loading, setLoading] = useState(false)
-
-  async function checkBackend() {
-    setLoading(true)
-    setStatus('Checking...')
-
-    try {
-      const response = await fetch('/api/health')
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      if (data.status !== 'ok') {
-        throw new Error('Unexpected response')
-      }
-
-      setStatus('Backend is running')
-    } catch {
-      setStatus('Unable to verify backend status')
-    } finally {
-      setLoading(false)
-    }
-  }
-
+export function App() {
   return (
-    <main>
-      <h1>Travel Planner</h1>
-      <p>Plan your next trip together.</p>
-
-      <button onClick={checkBackend} disabled={loading}>
-        Check backend
-      </button>
-
-      <p role="status">{status}</p>
-    </main>
-  )
+    <BrowserRouter>
+      <Routes>
+        {/* 访问根路径自动重定向到 /login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        
+        {/* 关键：确保这里的 path 完全匹配 /login */}
+        <Route path="/login" element={<AuthPage />} />
+        
+        {/* 登录成功后的主页 */}
+        <Route path="/home" element={<div style={{ padding: 24 }}>Home Page</div>} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
