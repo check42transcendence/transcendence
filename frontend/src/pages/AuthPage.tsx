@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthFormCard, FieldErrors } from './components/AuthFormCard';
 
+// 💡 开发开关：后端接口做好前设为 true；后端上线联调时直接改成 false
+const USE_MOCK = true;
+
 export const AuthPage: React.FC = () => {
   const navigate = useNavigate();
 
@@ -17,7 +20,7 @@ export const AuthPage: React.FC = () => {
 
   const [errors, setErrors] = useState<FieldErrors>({});
 
-  /* ===================== 校验逻辑 ===================== */
+  /* ================= 格式校验 ================= */
   const validateEmail = (val: string): string | undefined => {
     const trimmed = val.trim();
     if (!trimmed) return 'Email is required.';
@@ -73,7 +76,7 @@ export const AuthPage: React.FC = () => {
     return !Object.values(currentErrors).some(Boolean);
   };
 
-  /* ===================== 核心请求逻辑 ===================== */
+  /* ================= 提交处理 (支持 Mock 与 Real API) ================= */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBackendError(null);
@@ -84,26 +87,57 @@ export const AuthPage: React.FC = () => {
     setIsLoading(true);
 
     try {
+      // ----------------------------------------------------
+      // 1. 本地 MOCK 逻辑 (完全按照后端 P0 契约模拟)
+      // ----------------------------------------------------
+      if (USE_MOCK) {
+        // 模拟 600ms 网络延迟
+        await new Promise((resolve) => setTimeout(resolve, 600));
+
+        if (isLogin) {
+          // 模拟登录：如果你输入的密码包含 "error" 或不是对应账号，抛出契约规范的 401
+          if (password === 'error123') {
+            throw new Error('Invalid email or password.');
+          }
+
+          // 契约 §1: 登录成功时，后端在浏览器中植入 HttpOnly Cookie
+          // 前端不需要也不应该存 localStorage，直接路由跳转
+          navigate('/home');
+        } else {
+          // 模拟注册：如果用户名是 admin 模拟冲突报错
+          if (username === 'admin') {
+            throw new Error('Username is already taken.');
+          }
+
+          // 契约 §2: 注册成功不建立登录态，提示并切回登录页
+          setSuccessMessage('Account created successfully! Please sign in with your email and password.');
+          setIsLogin(true);
+          setPassword('');
+        }
+        return;
+      }
+
+      // ----------------------------------------------------
+      // 2. 真实后端接口请求逻辑 (USE_MOCK 设为 false 时自动启用)
+      // ----------------------------------------------------
       if (isLogin) {
-        // [Contract §1]: Login 仅使用 Email + Password
-        // 后端会在响应中下发 Set-Cookie: jwt=...; HttpOnly; SameSite=Lax
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include', // 必须加：携带 & 接收 HttpOnly Cookie
+          credentials: 'include',
           body: JSON.stringify({ email: email.trim(), password }),
         });
 
         if (!res.ok) {
+          if (res.status === 401) {
+            throw new Error('Invalid email or password.');
+          }
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || 'Login failed. Invalid email or password.');
+          throw new Error(data.message || 'Login failed. Please try again.');
         }
 
-        // [Contract §13]: 绝不使用 localStorage 存储 Token！
-        // 登录成功直接跳转受保护页面，Cookie 由浏览器自动维系
         navigate('/home');
       } else {
-        // [Contract §1]: Register 使用 Email + Username + Password
         const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -120,16 +154,15 @@ export const AuthPage: React.FC = () => {
           throw new Error(data.message || 'Registration failed.');
         }
 
-        // [Contract §2]: 注册不隐式建立会话！必须引导用户显式登录
-        setSuccessMessage('Registration successful! Please sign in with your credentials.');
-        setIsLogin(true); // 自动切回登录状态
-        setPassword('');  // 清空密码以防残留
+        setSuccessMessage('Account created successfully! Please sign in with your email and password.');
+        setIsLogin(true);
+        setPassword('');
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setBackendError(err.message);
       } else {
-        setBackendError('An unexpected network error occurred.');
+        setBackendError('An unexpected error occurred.');
       }
     } finally {
       setIsLoading(false);
