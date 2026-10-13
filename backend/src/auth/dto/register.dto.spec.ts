@@ -2,6 +2,7 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { RegisterDto } from './register.dto.js';
 
+// Checks registration input validation and whitespace handling.
 describe('RegisterDto', () => {
   it('trims email and username without changing the password', async () => {
     const dto = plainToInstance(RegisterDto, {

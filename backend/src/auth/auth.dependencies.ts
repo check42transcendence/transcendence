@@ -1,3 +1,4 @@
+// Proposed dependency types; current services still use concrete mocks.
 export interface AuthUserRecord {
   id: string;
   email: string;
@@ -24,6 +25,7 @@ export abstract class AuthPasswordService {
   abstract verify(password: string, passwordHash: string): Promise<boolean>;
 }
 
+// Identifies which unique user field caused a storage conflict.
 export class AuthUserConflictError extends Error {
   constructor(public readonly field: 'email' | 'username') {
     super(`${field} already exists`);

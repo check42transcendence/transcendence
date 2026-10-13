@@ -10,6 +10,7 @@ import type { LoginDto } from './dto/login.dto.js';
 import { MockAuthUserStore } from './mocks/mock-auth-user.store.js';
 import { MockAuthPasswordService } from './mocks/mock-auth-password.service.js';
 
+// Coordinates user creation, credential checks, and current-user lookup.
 @Injectable()
 export class AuthService {
   constructor(
@@ -20,6 +21,28 @@ export class AuthService {
     private readonly passwords: MockAuthPasswordService,
   ) {}
 
+  // Uses the same error for an unknown email and a wrong password.
+  private invalidCredentials(): UnauthorizedException {
+    return new UnauthorizedException({
+      error: {
+        code: 'INVALID_CREDENTIALS',
+        message: 'Invalid email or password',
+        details: {},
+      },
+    });
+  }
+
+  private authenticationRequired(): UnauthorizedException {
+    return new UnauthorizedException({
+      error: {
+        code: 'AUTHENTICATION_REQUIRED',
+        message: 'Authentication required',
+        details: {},
+      },
+    });
+  }
+
+  // Passes the password hash to storage and returns only public fields.
   async register(input: RegisterDto) {
     const passwordHash = await this.passwords.hash(input.password);
     try {
@@ -37,6 +60,7 @@ export class AuthService {
         },
       };
     } catch (error) {
+      // Converts known user conflicts into the contract's HTTP errors.
       if (error instanceof AuthUserConflictError) {
         if (error.field === 'email') {
           throw new ConflictException({
@@ -63,6 +87,7 @@ export class AuthService {
     }
   }
 
+  // Verifies credentials; the controller handles the session step.
   async login(input: LoginDto) {
     const user = await this.users.findByEmail(input.email);
 
@@ -88,13 +113,24 @@ export class AuthService {
     };
   }
 
-  private invalidCredentials(): UnauthorizedException {
-    return new UnauthorizedException({
-      error: {
-        code: 'INVALID_CREDENTIALS',
-        message: 'Invalid email or password',
-        details: {},
+  // Rejects missing identity or a user that no longer exists.
+  async me(userId: string | null) {
+    if (userId === null) {
+      throw this.authenticationRequired();
+    }
+
+    const user = await this.users.findById(userId);
+
+    if (user === null) {
+      throw this.authenticationRequired();
+    }
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
       },
-    });
+    };
   }
 }

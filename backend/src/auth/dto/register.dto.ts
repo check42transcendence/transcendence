@@ -1,6 +1,7 @@
 import { Transform } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
+// Validates registration fields and trims email and username.
 export class RegisterDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
@@ -17,6 +18,7 @@ export class RegisterDto {
   @MaxLength(50)
   username!: string;
 
+  // Keeps the password unchanged, including whitespace.
   @IsString()
   @IsNotEmpty()
   password!: string;

@@ -9,10 +9,12 @@ type MockUser = {
   passwordHash: string;
 };
 
+// Stores mock users in memory; restarting the app clears them.
 @Injectable()
 export class MockAuthUserStore {
   private readonly users: MockUser[] = [];
 
+  // Checks case-insensitive uniqueness before adding a mock user.
   async create(input: {
     email: string;
     username: string;
@@ -39,14 +41,21 @@ export class MockAuthUserStore {
       passwordHash: input.passwordHash,
     };
     this.users.push(user);
-    console.log('Mock 中的用户数量：', this.users.length);
+    console.log('Mock user count:', this.users.length);
     return user;
   }
 
+  // Looks up an email without changing its stored casing.
   async findByEmail(email: string): Promise<MockUser | null> {
     const user = this.users.find(
       (user) => user.email.toLowerCase() === email.toLowerCase(),
     );
+
+    return user ?? null;
+  }
+
+  async findById(id: string): Promise<MockUser | null> {
+    const user = this.users.find((user) => user.id === id);
 
     return user ?? null;
   }
