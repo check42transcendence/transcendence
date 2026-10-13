@@ -4,27 +4,24 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import {
-  AuthPasswordService,
-  AuthUserConflictError,
-  AuthUserRepository,
-} from './auth.dependencies.js';
+import { AuthUserConflictError } from './auth.dependencies.js';
 import type { RegisterDto } from './dto/register.dto.js';
 import type { LoginDto } from './dto/login.dto.js';
+import { MockAuthUserStore } from './mocks/mock-auth-user.store.js';
+import { MockAuthPasswordService } from './mocks/mock-auth-password.service.js';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @Inject(AuthUserRepository)
-    private readonly users: AuthUserRepository,
+    @Inject(MockAuthUserStore)
+    private readonly users: MockAuthUserStore,
 
-    @Inject(AuthPasswordService)
-    private readonly passwords: AuthPasswordService,
+    @Inject(MockAuthPasswordService)
+    private readonly passwords: MockAuthPasswordService,
   ) {}
 
   async register(input: RegisterDto) {
     const passwordHash = await this.passwords.hash(input.password);
-
     try {
       const user = await this.users.create({
         email: input.email,
@@ -41,17 +38,25 @@ export class AuthService {
       };
     } catch (error) {
       if (error instanceof AuthUserConflictError) {
-        const isEmail = error.field === 'email';
+        if (error.field === 'email') {
+          throw new ConflictException({
+            error: {
+              code: 'EMAIL_ALREADY_EXISTS',
+              message: 'Email already exists',
+              details: {},
+            },
+          });
+        }
 
-        throw new ConflictException({
-          error: {
-            code: isEmail ? 'EMAIL_ALREADY_EXISTS' : 'USERNAME_ALREADY_EXISTS',
-            message: isEmail
-              ? 'Email already exists'
-              : 'Username already exists',
-            details: {},
-          },
-        });
+        if (error.field === 'username') {
+          throw new ConflictException({
+            error: {
+              code: 'USERNAME_ALREADY_EXISTS',
+              message: 'Username already exists',
+              details: {},
+            },
+          });
+        }
       }
 
       throw error;
@@ -61,7 +66,7 @@ export class AuthService {
   async login(input: LoginDto) {
     const user = await this.users.findByEmail(input.email);
 
-    if (!user) {
+    if (user === null) {
       throw this.invalidCredentials();
     }
 

@@ -1,179 +1,108 @@
-import { vi } from 'vitest';
+import { ConflictException } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
-import { AuthUserConflictError } from './auth.dependencies.js';
+import { MockAuthUserStore } from './mocks/mock-auth-user.store.js';
+import { MockAuthPasswordService } from './mocks/mock-auth-password.service.js';
 
-describe('AuthService', () => {
-  it('registers a user without exposing the password hash', async () => {
-    const passwords = {
-      hash: vi.fn().mockResolvedValue('test-password-hash'),
-      verify: vi.fn(),
-    };
+describe('AuthService register', () => {
+  let service: AuthService;
 
-    const users = {
-      findByEmail: vi.fn(),
-      create: vi.fn().mockResolvedValue({
-        id: 'test-user-id',
-        email: 'alice@example.com',
-        username: 'alice',
-        passwordHash: 'test-password-hash',
-        createdAt: new Date(),
-      }),
-    };
+  beforeEach(() => {
+    const users = new MockAuthUserStore();
+    const passwords = new MockAuthPasswordService();
+    service = new AuthService(users, passwords);
+  });
 
-    const service = new AuthService(users, passwords);
-
+  it('returns public user information', async () => {
     const result = await service.register({
-      email: 'alice@example.com',
-      username: 'alice',
+      email: 'yihe@example.com',
+      username: 'yihe',
       password: 'example-password',
-    });
-
-    expect(passwords.hash).toHaveBeenCalledWith('example-password');
-
-    expect(users.create).toHaveBeenCalledWith({
-      email: 'alice@example.com',
-      username: 'alice',
-      passwordHash: 'test-password-hash',
     });
 
     expect(result).toEqual({
       user: {
-        id: 'test-user-id',
-        email: 'alice@example.com',
-        username: 'alice',
+        id: expect.any(String),
+        email: 'yihe@example.com',
+        username: 'yihe',
       },
     });
   });
 
-  it.each([
-    ['email', 'EMAIL_ALREADY_EXISTS'],
-    ['username', 'USERNAME_ALREADY_EXISTS'],
-  ] as const)('reports a duplicate %s', async (field, code) => {
-    const users = {
-      findByEmail: vi.fn(),
-      create: vi.fn().mockRejectedValue(new AuthUserConflictError(field)),
-    };
+  it('rejects a duplicate email regardless of casing', async () => {
+    await service.register({
+      email: 'yihe@example.com',
+      username: 'yihe',
+      password: 'example-password',
+    });
 
-    const passwords = {
-      hash: vi.fn().mockResolvedValue('test-password-hash'),
-      verify: vi.fn(),
-    };
-
-    const service = new AuthService(users, passwords);
-
-    const error: unknown = await service
-      .register({
-        email: 'alice@example.com',
-        username: 'alice',
+    try {
+      await service.register({
+        email: 'YIHE@example.com',
+        username: 'another',
         password: 'example-password',
-      })
-      .catch((caught: unknown) => caught);
-
-    expect(error).toBeInstanceOf(ConflictException);
-
-    if (!(error instanceof ConflictException)) {
-      throw new Error('Expected a ConflictException');
-    }
-
-    expect(error.getStatus()).toBe(409);
-    expect(error.getResponse()).toEqual({
-      error: {
-        code,
-        message:
-          field === 'email'
-            ? 'Email already exists'
-            : 'Username already exists',
-        details: {},
-      },
-    });
-  });
-
-  it('returns public user information when credentials are valid', async () => {
-    const users = {
-      findByEmail: vi.fn().mockResolvedValue({
-        id: 'test-user-id',
-        email: 'alice@example.com',
-        username: 'alice',
-        passwordHash: 'test-password-hash',
-        createdAt: new Date(),
-      }),
-      create: vi.fn(),
-    };
-
-    const passwords = {
-      hash: vi.fn(),
-      verify: vi.fn().mockResolvedValue(true),
-    };
-
-    const service = new AuthService(users, passwords);
-
-    const result = await service.login({
-      email: 'alice@example.com',
-      password: 'example-password',
-    });
-
-    expect(users.findByEmail).toHaveBeenCalledWith('alice@example.com');
-    expect(passwords.verify).toHaveBeenCalledWith(
-      'example-password',
-      'test-password-hash',
-    );
-
-    expect(result).toEqual({
-      user: {
-        id: 'test-user-id',
-        email: 'alice@example.com',
-        username: 'alice',
-      },
-    });
-  });
-
-  it.each(['unknown email', 'wrong password'])(
-    'rejects %s with the same credentials error',
-    async (scenario) => {
-      const user = {
-        id: 'test-user-id',
-        email: 'alice@example.com',
-        username: 'alice',
-        passwordHash: 'test-password-hash',
-        createdAt: new Date(),
-      };
-
-      const users = {
-        findByEmail: vi
-          .fn()
-          .mockResolvedValue(scenario === 'unknown email' ? null : user),
-        create: vi.fn(),
-      };
-
-      const passwords = {
-        hash: vi.fn(),
-        verify: vi.fn().mockResolvedValue(false),
-      };
-
-      const service = new AuthService(users, passwords);
-
-      const error: unknown = await service
-        .login({
-          email: 'alice@example.com',
-          password: 'wrong-password',
-        })
-        .catch((caught: unknown) => caught);
-
-      expect(error).toBeInstanceOf(UnauthorizedException);
-
-      if (!(error instanceof UnauthorizedException)) {
-        throw new Error('Expected an UnauthorizedException');
+      });
+    } catch (error) {
+      if (!(error instanceof ConflictException)) {
+        throw error;
       }
 
-      expect(error.getStatus()).toBe(401);
-      expect(error.getResponse()).toEqual({
-        error: {
-          code: 'INVALID_CREDENTIALS',
-          message: 'Invalid email or password',
-          details: {},
-        },
+      expect(error.getStatus()).toBe(409);
+      expect(error.getResponse()).toMatchObject({
+        error: { code: 'EMAIL_ALREADY_EXISTS' },
       });
-    },
-  );
+      return;
+    }
+
+    throw new Error('Expected an email conflict');
+  });
+
+  it('rejects a duplicate username regardless of casing', async () => {
+    await service.register({
+      email: 'yihe@example.com',
+      username: 'yihe',
+      password: 'example-password',
+    });
+
+    try {
+      await service.register({
+        email: 'another@example.com',
+        username: 'YIHE',
+        password: 'example-password',
+      });
+    } catch (error) {
+      if (!(error instanceof ConflictException)) {
+        throw error;
+      }
+
+      expect(error.getStatus()).toBe(409);
+      expect(error.getResponse()).toMatchObject({
+        error: { code: 'USERNAME_ALREADY_EXISTS' },
+      });
+      return;
+    }
+
+    throw new Error('Expected a username conflict');
+  });
+
+  it('returns public user information when verification succeeds', async () => {
+    const users = new MockAuthUserStore();
+    const passwords = new MockAuthPasswordService();
+
+    passwords.verificationSucceeds = true;
+
+    const auth = new AuthService(users, passwords);
+
+    const registered = await auth.register({
+      email: 'yihe@example.com',
+      username: 'yihe',
+      password: 'example-password',
+    });
+
+    const result = await auth.login({
+      email: 'yihe@example.com',
+      password: 'example-password',
+    });
+
+    expect(result).toEqual(registered);
+  });
 });

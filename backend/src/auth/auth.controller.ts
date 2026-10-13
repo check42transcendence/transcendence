@@ -2,31 +2,14 @@ import {
   BadRequestException,
   Body,
   Controller,
-  HttpCode,
   Inject,
   Post,
   ValidationPipe,
+  HttpCode,
 } from '@nestjs/common';
-import { AuthService } from './auth.service.js';
-import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
-
-function validationFor(dto: typeof RegisterDto | typeof LoginDto) {
-  return new ValidationPipe({
-    expectedType: dto,
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    exceptionFactory: () =>
-      new BadRequestException({
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Invalid request input',
-          details: {},
-        },
-      }),
-  });
-}
+import { LoginDto } from './dto/login.dto.js';
+import { AuthService } from './auth.service.js';
 
 @Controller('auth')
 export class AuthController {
@@ -36,14 +19,50 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  @HttpCode(201)
-  register(@Body(validationFor(RegisterDto)) input: RegisterDto) {
+  register(
+    @Body(
+      new ValidationPipe({
+        expectedType: RegisterDto,
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        exceptionFactory: () =>
+          new BadRequestException({
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: 'Invalid request input',
+              details: {},
+            },
+          }),
+      }),
+    )
+    input: RegisterDto,
+  ) {
+    console.log('注册输入校验通过，用户名： ', input.username);
     return this.authService.register(input);
   }
 
   @Post('login')
   @HttpCode(200)
-  login(@Body(validationFor(LoginDto)) input: LoginDto) {
+  login(
+    @Body(
+      new ValidationPipe({
+        expectedType: LoginDto,
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        exceptionFactory: () =>
+          new BadRequestException({
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: 'Invalid request input',
+              details: {},
+            },
+          }),
+      }),
+    )
+    input: LoginDto,
+  ) {
     return this.authService.login(input);
   }
 }
