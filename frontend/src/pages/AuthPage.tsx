@@ -1,48 +1,49 @@
+// src/pages/AuthPage.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AuthFormCard, FieldErrors } from './components/AuthFormCard';
 
-// 💡 开发开关：后端接口做好前设为 true；后端上线联调时直接改成 false
 const USE_MOCK = true;
 
 export const AuthPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [isLogin, setIsLogin] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [backendError, setBackendError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // 严格对齐 P0 契约字段
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const [errors, setErrors] = useState<FieldErrors>({});
 
-  /* ================= 格式校验 ================= */
+  /* ================= 多语言即时校验 ================= */
   const validateEmail = (val: string): string | undefined => {
     const trimmed = val.trim();
-    if (!trimmed) return 'Email is required.';
+    if (!trimmed) return t('errors.emailRequired');
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmed)) return 'Please enter a valid email address.';
+    if (!emailRegex.test(trimmed)) return t('errors.emailInvalid');
     return undefined;
   };
 
   const validateUsername = (val: string): string | undefined => {
     const trimmed = val.trim();
-    if (!trimmed) return 'Username is required.';
-    if (trimmed.length <= 2) return 'Username must be more than 2 characters (at least 3).';
+    if (!trimmed) return t('errors.usernameRequired');
+    if (trimmed.length <= 2) return t('errors.usernameTooShort');
     return undefined;
   };
 
   const validatePassword = (val: string): string | undefined => {
-    if (!val) return 'Password is required.';
+    if (!val) return t('errors.passwordRequired');
     const hasLetter = /[A-Za-z]/.test(val);
     const hasNumber = /\d/.test(val);
     const isLongEnough = val.length >= 6;
     if (!isLongEnough || !hasLetter || !hasNumber) {
-      return 'Password must be at least 6 characters and contain both letters and numbers.';
+      return t('errors.passwordTooWeak');
     }
     return undefined;
   };
@@ -76,7 +77,6 @@ export const AuthPage: React.FC = () => {
     return !Object.values(currentErrors).some(Boolean);
   };
 
-  /* ================= 提交处理 (支持 Mock 与 Real API) ================= */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBackendError(null);
@@ -87,39 +87,23 @@ export const AuthPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // ----------------------------------------------------
-      // 1. 本地 MOCK 逻辑 (完全按照后端 P0 契约模拟)
-      // ----------------------------------------------------
       if (USE_MOCK) {
-        // 模拟 600ms 网络延迟
         await new Promise((resolve) => setTimeout(resolve, 600));
 
         if (isLogin) {
-          // 模拟登录：如果你输入的密码包含 "error" 或不是对应账号，抛出契约规范的 401
           if (password === 'error123') {
-            throw new Error('Invalid email or password.');
+            throw new Error(t('errors.invalidCredentials'));
           }
-
-          // 契约 §1: 登录成功时，后端在浏览器中植入 HttpOnly Cookie
-          // 前端不需要也不应该存 localStorage，直接路由跳转
           navigate('/home');
         } else {
-          // 模拟注册：如果用户名是 admin 模拟冲突报错
-          if (username === 'admin') {
-            throw new Error('Username is already taken.');
-          }
-
-          // 契约 §2: 注册成功不建立登录态，提示并切回登录页
-          setSuccessMessage('Account created successfully! Please sign in with your email and password.');
+          setSuccessMessage(t('auth.regSuccess'));
           setIsLogin(true);
           setPassword('');
         }
         return;
       }
 
-      // ----------------------------------------------------
-      // 2. 真实后端接口请求逻辑 (USE_MOCK 设为 false 时自动启用)
-      // ----------------------------------------------------
+      // 真实后端请求对接
       if (isLogin) {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
@@ -129,11 +113,9 @@ export const AuthPage: React.FC = () => {
         });
 
         if (!res.ok) {
-          if (res.status === 401) {
-            throw new Error('Invalid email or password.');
-          }
+          if (res.status === 401) throw new Error(t('errors.invalidCredentials'));
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || 'Login failed. Please try again.');
+          throw new Error(data.message || t('errors.unexpected'));
         }
 
         navigate('/home');
@@ -142,19 +124,15 @@ export const AuthPage: React.FC = () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({
-            email: email.trim(),
-            username: username.trim(),
-            password,
-          }),
+          body: JSON.stringify({ email: email.trim(), username: username.trim(), password }),
         });
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || 'Registration failed.');
+          throw new Error(data.message || t('errors.unexpected'));
         }
 
-        setSuccessMessage('Account created successfully! Please sign in with your email and password.');
+        setSuccessMessage(t('auth.regSuccess'));
         setIsLogin(true);
         setPassword('');
       }
@@ -162,7 +140,7 @@ export const AuthPage: React.FC = () => {
       if (err instanceof Error) {
         setBackendError(err.message);
       } else {
-        setBackendError('An unexpected error occurred.');
+        setBackendError(t('errors.unexpected'));
       }
     } finally {
       setIsLoading(false);
