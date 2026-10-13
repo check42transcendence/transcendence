@@ -38,7 +38,8 @@ Root `.nvmrc` is authoritative.
 Vite frontend: 5173
 NestJS backend: 3000
 PostgreSQL internal: 5432
-Container browser port: APP_PORT, default 8080
+Container HTTP redirect port: APP_PORT, default 8080
+Container HTTPS browser port: 8443
 REST: /api
 Socket.IO: /socket.io
 ```
@@ -55,14 +56,17 @@ postgres
 
 Cross-container communication uses service DNS names, not `localhost`.
 
-Current topology:
+Current container topology:
 
 ```text
 Browser
+→ HTTPS localhost:8443
 → frontend/Nginx
 → backend:3000
 → postgres:5432
 ```
+
+HTTP on `APP_PORT` (default `8080`) redirects to `https://localhost:8443`.
 
 PostgreSQL uses named volume:
 
@@ -116,13 +120,24 @@ Frontend-exposed `VITE_*` values are public and must contain no secret.
 
 ## 6. Standard Container Commands
 
+Create the local environment file and local TLS certificate before starting the containerized stack:
+
 ```bash
 cp .env.example .env
+sh scripts/generate-local-cert.sh
 docker compose up --build
 docker compose ps
 docker compose logs --follow
 docker compose down
 ```
+
+The certificate script generates developer-local files under:
+
+```text
+certs/
+```
+
+The generated certificate and private key are not repository assets and must not be committed.
 
 Intentional local DB destruction only:
 
@@ -284,11 +299,13 @@ npm run test:e2e
 Validate:
 
 ```text
+temporary local TLS certificate generation
 Compose config
 image builds
 startup/health
-frontend HTTP
-/api/health through Nginx
+HTTP → HTTPS redirect
+frontend over HTTPS with certificate verification
+/api/health through the HTTPS Nginx gateway with certificate verification
 ```
 
 Container job follows successful frontend/backend checks.
@@ -324,11 +341,40 @@ Do not expose secrets/configuration.
 
 ## 18. HTTPS
 
-Current local/container baseline is HTTP.
+The current containerized local baseline uses HTTPS through Nginx.
 
-HTTPS is separate infrastructure work.
+```text
+HTTP localhost:APP_PORT (default 8080)
+→ 308 redirect
+→ HTTPS localhost:8443
+→ Nginx TLS termination
+```
 
-When introduced, review Nginx and Auth cookie security together.
+Local TLS uses a developer-generated self-signed certificate created by:
+
+```bash
+sh scripts/generate-local-cert.sh
+```
+
+Generated files are stored under:
+
+```text
+certs/localhost.crt
+certs/localhost.key
+```
+
+They are developer-local, ignored by Git, and mounted read-only into Nginx.
+
+The local Nginx baseline permits:
+
+```text
+TLSv1.2
+TLSv1.3
+```
+
+Public deployment and publicly trusted certificate management are outside the current local infrastructure baseline.
+
+Authentication implementation must respect the HTTPS cookie rules defined in `03-AUTH_CONTRACT.md`.
 
 ## 19. Realtime Infrastructure
 
@@ -398,6 +444,8 @@ coverage/
 *.tsbuildinfo
 *.log
 .DS_Store
+/certs/
+local TLS certificates or private keys
 local PostgreSQL data
 unrelated temporary generated files
 ```
