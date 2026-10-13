@@ -2,186 +2,135 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthFormCard, FieldErrors } from './components/AuthFormCard';
 
-interface AuthResponse {
-  accessToken?: string;
-  [key: string]: any;
-}
-
 export const AuthPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [isLogin, setIsLogin] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [backendError, setBackendError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // 表单受控输入字段
-  const [loginInput, setLoginInput] = useState('');
+  // 严格对齐 P0 契约字段
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
 
-  // 错误信息集合
   const [errors, setErrors] = useState<FieldErrors>({});
 
-  /* =========================================================================
-     校验函数定义 (纯函数)
-     ========================================================================= */
-
-  const getEmailError = (val: string): string | undefined => {
+  /* ===================== 校验逻辑 ===================== */
+  const validateEmail = (val: string): string | undefined => {
     const trimmed = val.trim();
     if (!trimmed) return 'Email is required.';
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmed)) {
-      return 'Please enter a valid email address.';
-    }
+    if (!emailRegex.test(trimmed)) return 'Please enter a valid email address.';
     return undefined;
   };
 
-  const getUsernameError = (val: string): string | undefined => {
+  const validateUsername = (val: string): string | undefined => {
     const trimmed = val.trim();
     if (!trimmed) return 'Username is required.';
-    if (trimmed.length <= 2) {
-      return 'Username must be more than 2 characters (at least 3).';
-    }
+    if (trimmed.length <= 2) return 'Username must be more than 2 characters (at least 3).';
     return undefined;
   };
 
-  const getDisplayNameError = (val: string): string | undefined => {
-    const trimmed = val.trim();
-    if (trimmed.length > 0 && trimmed.length <= 2) {
-      return 'Display Name must be more than 2 characters (at least 3).';
-    }
-    return undefined;
-  };
-
-  const getPasswordError = (val: string): string | undefined => {
+  const validatePassword = (val: string): string | undefined => {
     if (!val) return 'Password is required.';
     const hasLetter = /[A-Za-z]/.test(val);
     const hasNumber = /\d/.test(val);
     const isLongEnough = val.length >= 6;
-
     if (!isLongEnough || !hasLetter || !hasNumber) {
       return 'Password must be at least 6 characters and contain both letters and numbers.';
     }
     return undefined;
   };
 
-  const getLoginInputError = (val: string): string | undefined => {
-    if (!val.trim()) return 'Username or Email is required.';
-    return undefined;
-  };
-
-  /* =========================================================================
-     输入监听：输入中如果已有报错，则实时清理/更新错误
-     ========================================================================= */
   const handleEmailChange = (val: string) => {
     setEmail(val);
-    if (errors.email) {
-      setErrors((prev) => ({ ...prev, email: getEmailError(val) }));
-    }
+    setErrors((prev) => ({ ...prev, email: validateEmail(val) }));
   };
 
   const handleUsernameChange = (val: string) => {
     setUsername(val);
-    if (errors.username) {
-      setErrors((prev) => ({ ...prev, username: getUsernameError(val) }));
-    }
-  };
-
-  const handleDisplayNameChange = (val: string) => {
-    setDisplayName(val);
-    if (errors.displayName) {
-      setErrors((prev) => ({ ...prev, displayName: getDisplayNameError(val) }));
-    }
+    setErrors((prev) => ({ ...prev, username: validateUsername(val) }));
   };
 
   const handlePasswordChange = (val: string) => {
     setPassword(val);
-    if (errors.password) {
-      setErrors((prev) => ({ ...prev, password: getPasswordError(val) }));
-    }
+    setErrors((prev) => ({ ...prev, password: validatePassword(val) }));
   };
 
-  const handleLoginInputChange = (val: string) => {
-    setLoginInput(val);
-    if (errors.loginInput) {
-      setErrors((prev) => ({ ...prev, loginInput: getLoginInputError(val) }));
-    }
-  };
-
-  /* =========================================================================
-     失焦校验（用户移开焦点时触发）
-     ========================================================================= */
-  const handleBlurField = (field: keyof FieldErrors) => {
-    if (isLogin) {
-      if (field === 'loginInput') setErrors((p) => ({ ...p, loginInput: getLoginInputError(loginInput) }));
-      if (field === 'password') setErrors((p) => ({ ...p, password: getPasswordError(password) }));
-    } else {
-      if (field === 'email') setErrors((p) => ({ ...p, email: getEmailError(email) }));
-      if (field === 'username') setErrors((p) => ({ ...p, username: getUsernameError(username) }));
-      if (field === 'displayName') setErrors((p) => ({ ...p, displayName: getDisplayNameError(displayName) }));
-      if (field === 'password') setErrors((p) => ({ ...p, password: getPasswordError(password) }));
-    }
-  };
-
-  /* =========================================================================
-     点击提交时：全量校验
-     ========================================================================= */
   const validateAll = (): boolean => {
-    const newErrors: FieldErrors = {};
+    const currentErrors: FieldErrors = {
+      email: validateEmail(email),
+      password: validatePassword(password),
+    };
 
-    newErrors.password = getPasswordError(password);
-
-    if (isLogin) {
-      newErrors.loginInput = getLoginInputError(loginInput);
-    } else {
-      newErrors.email = getEmailError(email);
-      newErrors.username = getUsernameError(username);
-      newErrors.displayName = getDisplayNameError(displayName);
+    if (!isLogin) {
+      currentErrors.username = validateUsername(username);
     }
 
-    setErrors(newErrors);
-    return !Object.values(newErrors).some(Boolean);
+    setErrors(currentErrors);
+    return !Object.values(currentErrors).some(Boolean);
   };
 
-  const submitAuth = async (): Promise<AuthResponse> => {
-    const USE_MOCK: boolean = true;
-
-    if (USE_MOCK) {
-      await new Promise((resolve) => setTimeout(resolve, 700));
-
-      if (password === 'error') {
-        throw new Error('Invalid username/email or password.');
-      }
-
-      if (!isLogin && username === 'admin') {
-        throw new Error('Username is already taken.');
-      }
-
-      return { accessToken: 'mock-jwt-token' };
-    }
-
-    return {};
-  };
-
+  /* ===================== 核心请求逻辑 ===================== */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBackendError(null);
+    setSuccessMessage(null);
 
-    // 提交时校验全部字段
-    const isValid = validateAll();
-    if (!isValid) return;
+    if (!validateAll()) return;
 
     setIsLoading(true);
+
     try {
-      const data = await submitAuth();
-      if (data?.accessToken) {
-        localStorage.setItem('access_token', data.accessToken);
+      if (isLogin) {
+        // [Contract §1]: Login 仅使用 Email + Password
+        // 后端会在响应中下发 Set-Cookie: jwt=...; HttpOnly; SameSite=Lax
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', // 必须加：携带 & 接收 HttpOnly Cookie
+          body: JSON.stringify({ email: email.trim(), password }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.message || 'Login failed. Invalid email or password.');
+        }
+
+        // [Contract §13]: 绝不使用 localStorage 存储 Token！
+        // 登录成功直接跳转受保护页面，Cookie 由浏览器自动维系
+        navigate('/home');
+      } else {
+        // [Contract §1]: Register 使用 Email + Username + Password
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            email: email.trim(),
+            username: username.trim(),
+            password,
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.message || 'Registration failed.');
+        }
+
+        // [Contract §2]: 注册不隐式建立会话！必须引导用户显式登录
+        setSuccessMessage('Registration successful! Please sign in with your credentials.');
+        setIsLogin(true); // 自动切回登录状态
+        setPassword('');  // 清空密码以防残留
       }
-      navigate('/home');
-    } catch (err: any) {
-      setBackendError(err.message || 'An unexpected error occurred.');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setBackendError(err.message);
+      } else {
+        setBackendError('An unexpected network error occurred.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -190,6 +139,7 @@ export const AuthPage: React.FC = () => {
   const handleToggleMode = () => {
     setIsLogin((prev) => !prev);
     setBackendError(null);
+    setSuccessMessage(null);
     setErrors({});
   };
 
@@ -198,18 +148,14 @@ export const AuthPage: React.FC = () => {
       isLogin={isLogin}
       isLoading={isLoading}
       backendError={backendError}
-      loginInput={loginInput}
+      successMessage={successMessage}
       email={email}
       username={username}
-      displayName={displayName}
       password={password}
       errors={errors}
-      onLoginInputChange={handleLoginInputChange}
       onEmailChange={handleEmailChange}
       onUsernameChange={handleUsernameChange}
-      onDisplayNameChange={handleDisplayNameChange}
       onPasswordChange={handlePasswordChange}
-      onBlurField={handleBlurField}
       onSubmit={handleSubmit}
       onToggleMode={handleToggleMode}
     />
