@@ -16,13 +16,18 @@ Currently implemented:
 
 - React/TypeScript frontend with Vite and a backend connectivity check.
 - NestJS backend with a `GET /api/health` endpoint.
+- Auth API flows for register, login, me, and logout using temporary mocks.
 - PostgreSQL with persistent storage and Prisma database integration.
 - Docker Compose stack with service health checks and a non-root backend.
 - Nginx gateway with local HTTPS and HTTP-to-HTTPS redirection.
 - GitHub Actions checks for the frontend, backend, Prisma, and container stack.
 
-Domain database models and migrations, authentication, travel features,
-and real-time collaboration are not implemented yet.
+Auth currently uses in-memory users and mock password/session services.
+Real user persistence, password hashing, JWT cookies, and authenticated
+sessions are pending integration.
+
+Domain database models and migrations, travel features, and real-time
+collaboration are not implemented yet.
 
 HTTPS currently uses a local self-signed certificate. Public deployment
 and publicly trusted certificates are not configured yet.
