@@ -30,11 +30,17 @@ function App() {
   }
 
   return (
-    <main>
-      <h1>Travel Planner</h1>
-      <p>Plan your next trip together.</p>
+    <main className="mx-auto max-w-[960px] space-y-4 px-4 py-8">
+      <h1 className="text-page-title">Travel Planner</h1>
+      <p className="rounded-card bg-surface p-5 text-ink shadow-subtle">
+        Plan your next trip together.
+      </p>
 
-      <button onClick={checkBackend} disabled={loading}>
+      <button
+        className="tc-focus h-control rounded-control bg-brand px-5 text-small text-surface enabled:hover:bg-brand-hover transition-colors duration-(--tc-duration-fast) motion-reduce:transition-none"
+        onClick={checkBackend}
+        disabled={loading}
+      >
         Check backend
       </button>
 

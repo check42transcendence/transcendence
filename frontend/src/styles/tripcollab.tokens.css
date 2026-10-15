@@ -1,0 +1,110 @@
+:root {
+    /* Border radii */
+    --tc-radius-control: 10px;
+    --tc-radius-card: 14px;
+    --tc-radius-modal: 16px;
+
+    /* Control dimensions */
+    --tc-height-control: 44px;
+
+    /* Spacing: multiples of a 4px base unit */
+    --tc-space-1: 4px;
+    --tc-space-2: 8px;
+    --tc-space-3: 12px;
+    --tc-space-4: 16px;
+    --tc-space-5: 20px;
+    --tc-space-6: 24px;
+    --tc-space-8: 32px;
+    --tc-space-12: 48px;
+
+    /* Font family */
+    --tc-font-sans: 'Inter', system-ui, sans-serif;
+
+    /* Brand and actions */
+    --tc-color-brand: #286a4b;
+    --tc-color-brand-hover: #20563d;
+    --tc-color-accent: #c9754d;
+
+    /* Backgrounds and surfaces */
+    --tc-color-canvas: #faf8f4;
+    --tc-color-surface: #ffffff;
+    --tc-color-selected: #eaf2eb;
+    --tc-color-surface-secondary: #f5f1ea;
+
+    /* Text and borders */
+    --tc-color-ink: #252923;
+    --tc-color-muted: #687168;
+    --tc-color-text-subtle: #899087;
+    --tc-color-border: #e7e5de;
+
+    /* Status colors */
+    --tc-color-success: #26734d;
+    --tc-color-warning: #a66b21;
+    --tc-color-danger: #b94343;
+    --tc-color-info: #3976a8;
+
+    /* Font sizes */
+    --tc-font-size-hero: 40px;
+    --tc-font-size-page-title: 28px;
+    --tc-font-size-section-title: 22px;
+    --tc-font-size-card-title: 18px;
+    --tc-font-size-body: 16px;
+    --tc-font-size-small: 14px;
+    --tc-font-size-caption: 12px;
+
+    /* Shadows */
+    --tc-shadow-subtle: 0 1px 3px rgba(37, 41, 35, 0.06);
+    --tc-shadow-card-hover:
+        0 2px 6px rgba(37, 41, 35, 0.04),
+        0 8px 20px rgba(37, 41, 35, 0.04);
+    --tc-shadow-modal: 0 12px 32px rgba(37, 41, 35, 0.10);
+
+    /* Motion durations */
+    --tc-duration-fast: 150ms;
+    --tc-duration-normal: 200ms;
+}
+
+@theme inline {
+    /* Colors */
+    --color-brand: var(--tc-color-brand);
+    --color-brand-hover: var(--tc-color-brand-hover);
+    --color-canvas: var(--tc-color-canvas);
+    --color-surface: var(--tc-color-surface);
+    --color-ink: var(--tc-color-ink);
+    --color-muted: var(--tc-color-muted);
+    --color-accent: var(--tc-color-accent);
+    --color-selected: var(--tc-color-selected);
+    --color-surface-secondary: var(--tc-color-surface-secondary);
+    --color-text-subtle: var(--tc-color-text-subtle);
+    --color-border: var(--tc-color-border);
+    --color-success: var(--tc-color-success);
+    --color-warning: var(--tc-color-warning);
+    --color-danger: var(--tc-color-danger);
+    --color-info: var(--tc-color-info);
+
+    /* Font family */
+    --font-sans: var(--tc-font-sans);
+
+    /* Font sizes */
+    --text-hero: var(--tc-font-size-hero);
+    --text-page-title: var(--tc-font-size-page-title);
+    --text-section-title: var(--tc-font-size-section-title);
+    --text-card-title: var(--tc-font-size-card-title);
+    --text-body: var(--tc-font-size-body);
+    --text-small: var(--tc-font-size-small);
+    --text-caption: var(--tc-font-size-caption);
+
+    /* Base spacing unit and control dimensions */
+    --spacing: var(--tc-space-1);
+    --spacing-control: var(--tc-height-control);
+
+    /* Border radii */
+    --radius-control: var(--tc-radius-control);
+    --radius-card: var(--tc-radius-card);
+    --radius-modal: var(--tc-radius-modal);
+
+    /* Shadows */
+    --shadow-subtle: var(--tc-shadow-subtle);
+    --shadow-card-hover: var(--tc-shadow-card-hover);
+    --shadow-modal: var(--tc-shadow-modal);
+}
