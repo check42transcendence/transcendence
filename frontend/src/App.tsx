@@ -1,8 +1,12 @@
 import { useState } from 'react'
+import { Button } from './components/ui/Button'
+import { Input } from './components/ui/Input'
 
 function App() {
   const [status, setStatus] = useState('Not checked')
   const [loading, setLoading] = useState(false)
+  const [email, setEmail] = useState('')
+  const [emailError, setEmailError] = useState('')
 
   async function checkBackend() {
     setLoading(true)
@@ -36,13 +40,54 @@ function App() {
         Plan your next trip together.
       </p>
 
-      <button
-        className="tc-focus h-control rounded-control bg-brand px-5 text-small text-surface enabled:hover:bg-brand-hover transition-colors duration-(--tc-duration-fast) motion-reduce:transition-none"
-        onClick={checkBackend}
-        disabled={loading}
-      >
-        Check backend
-      </button>
+      <Input
+        label="Email"
+        type="email"
+        name="email"
+        placeholder="you@example.com"
+        required
+        value={email}
+        error={emailError}
+        onChange={(event) => {
+          setEmail(event.currentTarget.value)
+          setEmailError('')
+        }}
+        onBlur={() => {
+          setEmailError(email.trim() ? '' : 'Email is required.')
+        }}
+      />
+
+      <Input
+        label="Disabled email"
+        type="email"
+        defaultValue="disabled@example.com"
+        disabled
+      />
+
+      <Input
+        label="Read-only email"
+        type="email"
+        value="readonly@example.com"
+        readOnly
+      />
+
+      <div className="flex flex-wrap gap-4">
+        <Button onClick={checkBackend} isLoading={loading}>
+          Check backend
+        </Button>
+
+        <Button variant="secondary">
+          Secondary
+        </Button>
+
+        <Button variant="danger">
+          Danger
+        </Button>
+
+        <Button disabled>Disabled</Button>
+
+        <Button isLoading>Loading example</Button>
+      </div>
 
       <p role="status">{status}</p>
     </main>
