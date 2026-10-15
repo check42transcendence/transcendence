@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button } from './components/ui/Button'
 import { Input } from './components/ui/Input'
+import { Card } from './components/ui/Card'
 
 function App() {
   const [status, setStatus] = useState('Not checked')
@@ -36,9 +37,12 @@ function App() {
   return (
     <main className="mx-auto max-w-[960px] space-y-4 px-4 py-8">
       <h1 className="text-page-title">Travel Planner</h1>
-      <p className="rounded-card bg-surface p-5 text-ink shadow-subtle">
-        Plan your next trip together.
-      </p>
+      <Card className='space-y-2'>
+        <h2 className='text-card-title'>Plan together</h2>
+        <p className="text-muted">
+          Plan your next trip together.
+        </p>
+      </Card>
 
       <Input
         label="Email"
