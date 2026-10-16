@@ -24,10 +24,6 @@
   button {
     cursor: pointer;
   }
-
-  button:disabled {
-    cursor: wait;
-  }
 }
 
 @layer components {

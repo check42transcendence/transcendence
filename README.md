@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by yihe, weiyang, yuczhang, yzhang2, and zhma.*
+*This project has been created as part of the 42 curriculum by yihe, yuczhang, yzhang2, and zhma.*
 
 # Travel Planner
 
@@ -15,6 +15,9 @@ proposals, voting, and real-time collaboration.
 Currently implemented:
 
 - React/TypeScript frontend with Vite and a backend connectivity check.
+- Shared UI tokens and reusable Button, Input, and Card components using
+  Tailwind CSS v4, Inter, and Lucide. See the [frontend guide](frontend/README.md)
+  for component usage and styling conventions.
 - NestJS backend with a `GET /api/health` endpoint.
 - Auth API flows for register, login, me, and logout using temporary mocks.
 - PostgreSQL with persistent storage and Prisma database integration.
