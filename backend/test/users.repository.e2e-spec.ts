@@ -55,41 +55,31 @@ describe('UsersRepository: PostgreSQL exact matching', () => {
   });
 
   it('email: underscore does not match arbitrary character', async () => {
-    const result = await users.findByEmail(
-      plainEmail.replace('l', '_'),
-    );
+    const result = await users.findByEmail(plainEmail.replace('l', '_'));
 
     expect(result).toBeNull();
   });
 
   it('email: percent does not match arbitrary characters', async () => {
-    const result = await users.findByEmail(
-      plainEmail.replace('li', '%'),
-    );
+    const result = await users.findByEmail(plainEmail.replace('li', '%'));
 
     expect(result).toBeNull();
   });
 
   it('username: underscore does not match arbitrary character', async () => {
-    const result = await users.findByUsername(
-      plainUsername.replace('l', '_'),
-    );
+    const result = await users.findByUsername(plainUsername.replace('l', '_'));
 
     expect(result).toBeNull();
   });
 
   it('username: percent does not match arbitrary characters', async () => {
-    const result = await users.findByUsername(
-      plainUsername.replace('li', '%'),
-    );
+    const result = await users.findByUsername(plainUsername.replace('li', '%'));
 
     expect(result).toBeNull();
   });
 
   it('email: literal special characters still match ignoring case', async () => {
-    const result = await users.findByEmail(
-      `  ${specialEmail.toUpperCase()}  `,
-    );
+    const result = await users.findByEmail(`  ${specialEmail.toUpperCase()}  `);
 
     expect(result?.id).toBe(specialUserId);
   });
