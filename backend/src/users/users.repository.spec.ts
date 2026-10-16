@@ -72,6 +72,25 @@ describe('UsersRepository', () => {
       .resolves.toBeNull();
   });
 
+  it('findByEmail: escapes LIKE wildcard characters', async () => {
+  findFirst.mockResolvedValue(testUser);
+
+  const result = await users.findByEmail(
+    '  A_B%C\\D@example.com  ',
+  );
+
+  expect(result).toEqual(testUser);
+
+  expect(findFirst).toHaveBeenCalledWith({
+    where: {
+      email: {
+        equals: 'A\\_B\\%C\\\\D@example.com',
+        mode: 'insensitive',
+      },
+    },
+  });
+});
+
   it('findById: queries the exact ID', async () => {
     findUnique.mockResolvedValue(testUser);
 
@@ -98,6 +117,25 @@ describe('UsersRepository', () => {
       },
     });
   });
+
+it('findByUsername: escapes LIKE wildcard characters', async () => {
+  findFirst.mockResolvedValue(testUser);
+
+  const result = await users.findByUsername(
+    '  A_B%C\\D  ',
+  );
+
+  expect(result).toEqual(testUser);
+
+  expect(findFirst).toHaveBeenCalledWith({
+    where: {
+      username: {
+        equals: 'A\\_B\\%C\\\\D',
+        mode: 'insensitive',
+      },
+    },
+  });
+});
 
   it('create: trims fields and returns created user', async () => {
     create.mockResolvedValue(testUser);

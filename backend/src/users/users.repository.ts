@@ -12,12 +12,15 @@ export interface CreateUserInput {
 @Injectable()
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
+  private escapeLikePattern(value: string): string {
+    return value.replace(/[%_\\]/g, '\\$&');
+  }
 
   async findByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findFirst({
       where: {
         email: {
-          equals: email.trim(),
+          equals: this.escapeLikePattern(email.trim()),
           mode: 'insensitive',
         },
       },
@@ -34,7 +37,7 @@ async findByUsername(username: string): Promise<User | null> {
   return this.prisma.user.findFirst({
     where: {
       username: {
-        equals: username.trim(),
+        equals: this.escapeLikePattern(username.trim()),
         mode: 'insensitive',
       },
     },
