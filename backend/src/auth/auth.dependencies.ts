@@ -1,4 +1,4 @@
-// Proposed dependency types; current services still use concrete mocks.
+// Contracts for user storage and password handling.
 export interface AuthUserRecord {
   id: string;
   email: string;
@@ -14,21 +14,15 @@ export interface CreateAuthUserInput {
 }
 
 export abstract class AuthUserRepository {
+  abstract create(input: CreateAuthUserInput): Promise<AuthUserRecord>;
+
   abstract findByEmail(email: string): Promise<AuthUserRecord | null>;
 
-  abstract create(input: CreateAuthUserInput): Promise<AuthUserRecord>;
+  abstract findById(id: string): Promise<AuthUserRecord | null>;
 }
 
 export abstract class AuthPasswordService {
   abstract hash(password: string): Promise<string>;
 
   abstract verify(password: string, passwordHash: string): Promise<boolean>;
-}
-
-// Identifies which unique user field caused a storage conflict.
-export class AuthUserConflictError extends Error {
-  constructor(public readonly field: 'email' | 'username') {
-    super(`${field} already exists`);
-    this.name = 'AuthUserConflictError';
-  }
 }

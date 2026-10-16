@@ -1,25 +1,21 @@
 import { randomUUID } from 'node:crypto';
-import { AuthUserConflictError } from '../auth.dependencies.js';
+import { AuthUserConflictError } from '../../users/auth-user-conflict.error.js';
 import { Injectable } from '@nestjs/common';
+import type {
+  AuthUserRecord,
+  AuthUserRepository,
+  CreateAuthUserInput,
+} from '../auth.dependencies.js';
 
-type MockUser = {
-  id: string;
-  email: string;
-  username: string;
-  passwordHash: string;
-};
+type MockUser = AuthUserRecord;
 
 // Stores mock users in memory; restarting the app clears them.
 @Injectable()
-export class MockAuthUserStore {
+export class MockAuthUserStore implements AuthUserRepository {
   private readonly users: MockUser[] = [];
 
   // Checks case-insensitive uniqueness before adding a mock user.
-  async create(input: {
-    email: string;
-    username: string;
-    passwordHash: string;
-  }): Promise<MockUser> {
+  async create(input: CreateAuthUserInput): Promise<MockUser> {
     const emailExists = this.users.some(
       (user) => user.email.toLowerCase() === input.email.toLowerCase(),
     );
@@ -39,6 +35,7 @@ export class MockAuthUserStore {
       email: input.email,
       username: input.username,
       passwordHash: input.passwordHash,
+      createdAt: new Date(),
     };
     this.users.push(user);
     console.log('Mock user count:', this.users.length);

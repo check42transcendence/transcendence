@@ -5,13 +5,20 @@ import { AuthModule } from './auth.module.js';
 import { MockAuthPasswordService } from './mocks/mock-auth-password.service.js';
 import { MockAuthSessionService } from './mocks/mock-auth-session.service.js';
 import { MockAuthUserStore } from './mocks/mock-auth-user.store.js';
+import { PrismaService } from '../database/prisma.service.js';
+import { AuthUserRepository } from './auth.dependencies.js';
 
 // Checks HTTP responses and session calls using mock dependencies.
 describe('AuthController login', () => {
   it('calls the session tool after successful verification', async () => {
     const module = await Test.createTestingModule({
       imports: [AuthModule],
-    }).compile();
+    })
+      .overrideProvider(AuthUserRepository)
+      .useClass(MockAuthUserStore)
+      .overrideProvider(PrismaService)
+      .useValue({})
+      .compile();
 
     const passwords = module.get(MockAuthPasswordService);
     passwords.verificationSucceeds = true;
@@ -66,9 +73,14 @@ describe('AuthController login', () => {
   it('returns the user identified by the session tool', async () => {
     const module = await Test.createTestingModule({
       imports: [AuthModule],
-    }).compile();
+    })
+      .overrideProvider(AuthUserRepository)
+      .useClass(MockAuthUserStore)
+      .overrideProvider(PrismaService)
+      .useValue({})
+      .compile();
 
-    const users = module.get(MockAuthUserStore);
+    const users = module.get(AuthUserRepository);
 
     const user = await users.create({
       email: 'yihe@example.com',
@@ -105,7 +117,12 @@ describe('AuthController login', () => {
   it('calls the session clear tool and returns 204', async () => {
     const module = await Test.createTestingModule({
       imports: [AuthModule],
-    }).compile();
+    })
+      .overrideProvider(AuthUserRepository)
+      .useClass(MockAuthUserStore)
+      .overrideProvider(PrismaService)
+      .useValue({})
+      .compile();
 
     const sessions = module.get(MockAuthSessionService);
     const clearSpy = vi.spyOn(sessions, 'clear');

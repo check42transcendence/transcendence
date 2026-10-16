@@ -19,14 +19,15 @@ Currently implemented:
   Tailwind CSS v4, Inter, and Lucide. See the [frontend guide](frontend/README.md)
   for component usage and styling conventions.
 - NestJS backend with a `GET /api/health` endpoint.
-- Auth API flows for register, login, me, and logout using temporary mocks.
+- Auth API flows for register, login, me, and logout with PostgreSQL user storage
+  and temporary password/session mocks.
 - PostgreSQL with persistent storage and Prisma database integration.
 - Docker Compose stack with service health checks and a non-root backend.
 - Nginx gateway with local HTTPS and HTTP-to-HTTPS redirection.
 - GitHub Actions checks for the frontend, backend, Prisma, and container stack.
 
-Auth currently uses in-memory users and mock password/session services.
-Real user persistence, password hashing, JWT cookies, and authenticated
+Auth uses PostgreSQL for user persistence. Password handling and sessions
+still use temporary mocks. Real password hashing, JWT cookies, and authenticated
 sessions are pending integration.
 
 Domain database models and migrations, travel features, and real-time

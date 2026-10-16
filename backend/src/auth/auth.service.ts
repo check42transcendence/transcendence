@@ -4,18 +4,18 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthUserConflictError } from './auth.dependencies.js';
+import { AuthUserConflictError } from '../users/auth-user-conflict.error.js';
 import type { RegisterDto } from './dto/register.dto.js';
 import type { LoginDto } from './dto/login.dto.js';
-import { MockAuthUserStore } from './mocks/mock-auth-user.store.js';
+import { AuthUserRepository } from './auth.dependencies.js';
 import { MockAuthPasswordService } from './mocks/mock-auth-password.service.js';
 
 // Coordinates user creation, credential checks, and current-user lookup.
 @Injectable()
 export class AuthService {
   constructor(
-    @Inject(MockAuthUserStore)
-    private readonly users: MockAuthUserStore,
+    @Inject(AuthUserRepository)
+    private readonly users: AuthUserRepository,
 
     @Inject(MockAuthPasswordService)
     private readonly passwords: MockAuthPasswordService,
