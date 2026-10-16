@@ -31,7 +31,7 @@ attributes plus the props below.
 
 | Component | Props and behavior |
 | --- | --- |
-| `Button` | `variant`: `primary` (default), `secondary`, or `danger`; `isLoading` disables interaction while keeping the label and appearance. `disabled` uses the shared disabled colors. Defaults to `type="button"`. |
+| `Button` | `variant`: `primary` (default), `secondary`, or `danger`; `isLoading` disables interaction and shows a centered spinner while preserving button dimensions and its accessible name. `disabled` uses the shared disabled colors. Defaults to `type="button"`. |
 | `Input` | Required `label`, optional `error`; supports `value`/`onChange`, `disabled`, and `readOnly`. Associates labels and error messages with the input. |
 | `Card` | A non-interactive container with shared padding, border, radius, and shadow. Place content and action controls inside it. |
 

@@ -9,7 +9,6 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [emailError, setEmailError] = useState('')
-  const [password, setPassword] = useState('')
 
   async function checkBackend() {
     setLoading(true)
@@ -50,38 +49,6 @@ function App() {
         </p>
 
         <Button variant="secondary">Example action</Button>
-
-        <h2>Login</h2>
-        <Input
-          label="Email"
-          type="email"
-          name="email"
-          placeholder="you@example.com"
-          required
-          value={email}
-          error={emailError}
-          onChange={(event) => {
-            setEmail(event.currentTarget.value)
-            setEmailError('')
-          }}
-          onBlur={() => {
-            setEmailError(email.trim() ? '' : 'Email is required.')
-          }}
-        />
-        <Input
-          label="Password"
-          type="password"
-          name="password"
-          placeholder="your password"
-          required
-          value={password}
-          onChange={(event) => {
-            setPassword(event.currentTarget.value)
-          }}
-        />
-        <Button isLoading={loading}>
-          login
-        </Button>
       </Card>
 
       <Input
