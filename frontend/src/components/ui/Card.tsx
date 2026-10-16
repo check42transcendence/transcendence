@@ -2,6 +2,17 @@ import type { ComponentProps } from "react";
 
 type CardProps = ComponentProps<'div'>
 
+// Shared content padding.
+const spacingStyles = 'p-5'
+
+// Card surface, border, and corner radius.
+const surfaceStyles = 'rounded-card border border-border bg-surface'
+
+// Default text color and subtle elevation; no hover effects.
+const appearanceStyles = 'text-ink shadow-subtle'
+
+const baseStyles = [spacingStyles, surfaceStyles, appearanceStyles].join(' ')
+
 export function Card({
     children,
     className = '',
@@ -10,7 +21,7 @@ export function Card({
     return (
         <div
             {...props}
-            className={`rounded-card border border-border bg-surface p-5 text-ink shadow-subtle ${className}`}
+            className={`${baseStyles} ${className}`}
         >
             {children}
         </div>

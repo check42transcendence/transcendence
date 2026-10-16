@@ -6,6 +6,43 @@ type InputProps = ComponentProps<'input'> & {
     error?: string
 }
 
+// Label, control, and error message layout.
+const fieldLayoutStyles = 'flex flex-col gap-2'
+const labelStyles = 'text-small font-medium text-ink'
+const errorMessageStyles = 'text-small text-danger'
+
+// Control dimensions, shape, and inner spacing.
+const controlStyles = 'h-control w-full rounded-control border px-3'
+
+// Default surface, entered text, and placeholder text.
+const appearanceStyles = 'text-body bg-surface text-ink placeholder:text-muted'
+
+// Keyboard focus and color transitions; no hover background change.
+const interactionStyles =
+    'tc-focus transition-colors duration-(--tc-duration-fast) motion-reduce:transition-none'
+
+// Read-only fields remain focusable and use a distinct background.
+const readOnlyStyles = 'enabled:read-only:bg-surface-secondary'
+
+// Disabled fields use explicit colors rather than reduced opacity.
+const disabledStyles = [
+    'disabled:cursor-not-allowed disabled:bg-disabled-bg',
+    'disabled:text-disabled-text disabled:border-disabled-border',
+    'disabled:placeholder:text-disabled-text',
+].join(' ')
+
+// Validation colors remain separate from the shared control styles.
+const normalStyles = 'border-border-control focus:border-brand'
+const errorStyles = 'border-danger focus-visible:outline-danger'
+
+const baseStyles = [
+    controlStyles,
+    appearanceStyles,
+    interactionStyles,
+    readOnlyStyles,
+    disabledStyles,
+].join(' ')
+
 export function Input({
     label,
     error,
@@ -16,6 +53,7 @@ export function Input({
     const generatedId = useId()
     const inputId = id ?? generatedId
     const errorId = `${inputId}-error`
+    const validationStyles = error ? errorStyles : normalStyles
 
     const describedBy = [
         props['aria-describedby'],
@@ -23,8 +61,8 @@ export function Input({
     ].filter(Boolean).join(' ') || undefined
 
     return (
-        <div className="flex flex-col gap-2">
-            <label htmlFor={inputId} className="text-small text-ink">
+        <div className={fieldLayoutStyles}>
+            <label htmlFor={inputId} className={labelStyles}>
                 {label}
             </label>
 
@@ -33,15 +71,11 @@ export function Input({
                 id={inputId}
                 aria-invalid={error ? true : props['aria-invalid']}
                 aria-describedby={describedBy}
-                className={`tc-focus h-control w-full rounded-control border bg-surface px-3 text-body text-ink
-                    disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-50 read-only:bg-surface-secondary
-                    ${error ? 'border-danger' : 'border-border'}
-                    ${className}`
-                }
+                className={`${baseStyles} ${validationStyles} ${className}`}
             />
 
             {error && (
-                <p id={errorId} className="text-small text-danger">
+                <p id={errorId} className={errorMessageStyles}>
                     {error}
                 </p>
             )}

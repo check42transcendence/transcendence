@@ -7,17 +7,51 @@ type ButtonProps = ComponentProps<'button'> & {
     isLoading?: boolean
 }
 
-const baseStyles =
-    'tc-focus h-control rounded-control border px-5 text-small transition-colors duration-(--tc-duration-fast) motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50'
+// Content alignment and spacing between icons and text.
+const layoutStyles = 'inline-flex items-center justify-center gap-2'
+
+// Control dimensions, shape, and horizontal padding.
+const controlStyles = 'h-control rounded-control border px-5'
+
+// Shared font family, size, and weight.
+const typographyStyles = 'font-sans text-small font-medium'
+
+// Color transitions respect the user's reduced-motion preference.
+const motionStyles =
+    'transition-colors duration-(--tc-duration-fast) motion-reduce:transition-none'
+
+// Keyboard focus and the cursor for non-interactive buttons.
+const interactionStyles = 'tc-focus disabled:cursor-not-allowed'
+
+const baseStyles = [
+    layoutStyles,
+    controlStyles,
+    typographyStyles,
+    motionStyles,
+    interactionStyles,
+].join(' ')
 
 const variantStyles = {
-    primary:
-        'border-transparent bg-brand text-surface enabled:hover:bg-brand-hover',
-    secondary:
-        'border-border bg-surface text-ink',
-    danger:
+    primary: [
+        'border-transparent bg-brand text-surface', // Default appearance.
+        'enabled:hover:bg-brand-hover', // Hover feedback.
+        'enabled:active:bg-brand-pressed', // Pressed feedback.
+    ].join(' '),
+    secondary: [
+        'border-border-control bg-surface text-ink',
+        'enabled:hover:bg-surface-secondary',
+        'enabled:active:bg-secondary-pressed',
+    ].join(' '),
+    danger: [
         'border-transparent bg-danger text-surface',
+        'enabled:hover:bg-danger-hover',
+        'enabled:active:bg-danger-pressed',
+    ].join(' '),
 }
+
+// Explicitly disabled buttons share one appearance across all variants.
+const disabledStyles =
+    'border-disabled-border bg-disabled-bg text-disabled-text'
 
 export function Button({
     children,
@@ -29,6 +63,9 @@ export function Button({
     ...props
 }: ButtonProps) {
     const isDisabled = disabled || isLoading
+    const appearanceStyles = disabled
+        ? disabledStyles
+        : variantStyles[variant]
 
     return (
         <button
@@ -36,7 +73,7 @@ export function Button({
             type={type}
             disabled={isDisabled}
             aria-busy={isLoading || undefined}
-            className={`${baseStyles} ${variantStyles[variant]} ${className}`}
+            className={`${baseStyles} ${appearanceStyles} ${className}`}
         >
             {children}
         </button>

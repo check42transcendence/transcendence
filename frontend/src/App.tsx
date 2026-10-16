@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { Button } from './components/ui/Button'
 import { Input } from './components/ui/Input'
 import { Card } from './components/ui/Card'
@@ -8,6 +9,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [emailError, setEmailError] = useState('')
+  const [password, setPassword] = useState('')
 
   async function checkBackend() {
     setLoading(true)
@@ -37,11 +39,49 @@ function App() {
   return (
     <main className="mx-auto max-w-[960px] space-y-4 px-4 py-8">
       <h1 className="text-page-title">Travel Planner</h1>
-      <Card className='space-y-2'>
-        <h2 className='text-card-title'>Plan together</h2>
+      <Card className="space-y-3">
+        <h2 className="text-card-title font-medium">
+          A weekend trip with friends
+        </h2>
+
         <p className="text-muted">
-          Plan your next trip together.
+          Plan activities together, discuss proposals, and keep
+          everyone informed about the trip.
         </p>
+
+        <Button variant="secondary">Example action</Button>
+
+        <h2>Login</h2>
+        <Input
+          label="Email"
+          type="email"
+          name="email"
+          placeholder="you@example.com"
+          required
+          value={email}
+          error={emailError}
+          onChange={(event) => {
+            setEmail(event.currentTarget.value)
+            setEmailError('')
+          }}
+          onBlur={() => {
+            setEmailError(email.trim() ? '' : 'Email is required.')
+          }}
+        />
+        <Input
+          label="Password"
+          type="password"
+          name="password"
+          placeholder="your password"
+          required
+          value={password}
+          onChange={(event) => {
+            setPassword(event.currentTarget.value)
+          }}
+        />
+        <Button isLoading={loading}>
+          login
+        </Button>
       </Card>
 
       <Input
@@ -79,18 +119,18 @@ function App() {
         <Button onClick={checkBackend} isLoading={loading}>
           Check backend
         </Button>
-
         <Button variant="secondary">
-          Secondary
+          <Plus size={15} strokeWidth={5} aria-hidden="true" />
+          With icon
         </Button>
-
         <Button variant="danger">
           Danger
         </Button>
-
         <Button disabled>Disabled</Button>
-
         <Button isLoading>Loading example</Button>
+        <Button disabled>Primary disabled</Button>
+        <Button variant="secondary" disabled>Secondary disabled</Button>
+        <Button variant="danger" disabled>Danger disabled</Button>
       </div>
 
       <p role="status">{status}</p>
