@@ -78,7 +78,6 @@ activity:deleted
 
 proposal:created
 proposal:vote-updated
-proposal:rejected
 proposal:adopted
 proposal:reopened
 ```
@@ -138,31 +137,11 @@ Room broadcast excludes recipient-specific `currentUserDecision`.
 
 ### proposal:vote-updated
 
-For a Vote change that leaves Proposal `PENDING`, broadcasts absolute shared vote summary.
+For every successful Vote create/change on a `PENDING` Proposal, broadcasts the latest absolute shared vote summary.
+
+A REJECT Vote does not change Proposal status and does not emit a separate rejection event.
 
 No `+1/-1` delta logic.
-
-### proposal:rejected
-
-Emitted after committed:
-
-```text
-PENDING → REJECTED
-```
-
-caused by:
-
-```text
-rejectCount >= ceil(participantCount / 2)
-```
-
-Carries the latest `SharedProposal` with status `REJECTED`.
-
-This event communicates the committed state change.
-
-In P0, `REJECTED` is terminal: clients must disable further Vote mutation and Adoption actions for that Proposal.
-
-When a Vote mutation itself causes rejection, emitting `proposal:rejected` is sufficient; a redundant `proposal:vote-updated` for the same state transition is not required.
 
 ### proposal:adopted
 
@@ -197,6 +176,8 @@ After Member Leave succeeds, that User's active sockets must be removed from the
 After Trip deletion, the room must stop protected Workspace delivery.
 
 P0 does not require a realtime Member-list feature.
+
+Membership changes may alter Proposal vote summaries/Adoption eligibility, but P0 defines no automatic Proposal status transition from those changes.
 
 ## 11. Reconnection / Resync
 
@@ -257,16 +238,14 @@ At minimum:
 6. Activity update contains new version/editor data;
 7. stale Activity REST update emits no success event;
 8. Proposal create event;
-9. PENDING Vote change updates summary;
-10. threshold crossing emits `proposal:rejected`;
+9. successful Vote change emits `proposal:vote-updated` with absolute summary;
+10. REJECT Vote leaves Proposal `PENDING` and emits no rejection-status event;
 11. successful Adoption emits `proposal:adopted`;
 12. failed/lost-majority Adoption emits no adopted event;
 13. double Adoption produces one success;
 14. Proposal-sourced Activity delete emits delete + reopen state;
 15. Leave stops protected Trip delivery;
 16. reconnect requires resubscription + REST resync.
-
-Tests must verify that `REJECTED` is terminal in P0: no further Vote mutation or Adoption succeeds.
 
 ## 15. Explicit Realtime Non-Goals
 
@@ -278,5 +257,7 @@ typing
 cursor sharing
 durable event history/replay
 Activity edit locks
+automatic Proposal rejection
+proposal:rejected event
 PWA offline mutation sync
 ```
