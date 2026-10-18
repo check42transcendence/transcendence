@@ -1,10 +1,12 @@
 
 import { useState } from 'react'
 import { LoginPage } from './pages/LoginPage'
+import { RegisterPage } from './pages/RegisterPage'
 
 function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [currentPage, setCurrentPage] = useState<'login' | 'register'>('login')
 
   async function handleLogin(credentials: {
     email: string
@@ -43,16 +45,24 @@ function App() {
     }
   }
 
-  return (
-    <LoginPage
-      onSubmit={handleLogin}
-      loading={loading}
-      error={error}
-      onRegisterClick={() => {
-        window.location.assign('/register')
-      }}
-    />
-  )
+  return currentPage === 'login' ? (
+  <LoginPage
+    onSubmit={handleLogin}
+    loading={loading}
+    error={error}
+    onRegisterClick={() => setCurrentPage('register')}
+  />
+) : (
+  <RegisterPage
+    onSubmit={async (credentials) => {
+      console.log('Register form submitted:', {
+        email: credentials.email,
+        username: credentials.username,
+      })
+    }}
+    onLoginClick={() => setCurrentPage('login')}
+  />
+)
 }
 
 export default App
