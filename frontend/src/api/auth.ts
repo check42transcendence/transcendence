@@ -5,6 +5,12 @@ export interface RegisterInput {
     password: string
 }
 
+// Data sent when logging in.
+export interface LoginInput {
+    email: string
+    password: string
+}
+
 // Public information about the current user.
 export interface CurrentUser {
     id: string
@@ -14,6 +20,16 @@ export interface CurrentUser {
 
 // Successful registration response.
 export interface RegisterResponse {
+    user: CurrentUser
+}
+
+// Successful login response.
+export interface LoginResponse {
+    user: CurrentUser
+}
+
+// Successful current-user response.
+export interface MeResponse {
     user: CurrentUser
 }
 
@@ -36,20 +52,23 @@ export class AuthApiError extends Error {
     }
 }
 
-// Data sent when logging in.
-export interface LoginInput {
-    email: string
-    password: string
-}
-
-// Successful login response.
-export interface LoginResponse {
-    user: CurrentUser
-}
-
-// Successful current-user response.
-export interface MeResponse {
-    user: CurrentUser
+// Reads backend errors and falls back to a generic HTTP error.
+async function readApiError(response: Response): Promise<AuthApiError> {
+    let message = `Request failed (HTTP ${response.status})`
+    let code = 'HTTP_ERROR'
+    try {
+        const data: AuthErrorResponse = await response.json()
+        if (
+            typeof data.error.code === 'string' &&
+            typeof data.error.message === 'string'
+        ) {
+            code = data.error.code
+            message = data.error.message
+        }
+    } catch {
+        // Keep the default error if the response cannot be read as expected.
+    }
+    return new AuthApiError(message, code)
 }
 
 // Sends registration data to the backend.
@@ -62,8 +81,7 @@ export async function register(input: RegisterInput): Promise<RegisterResponse> 
         body: JSON.stringify(input),
     })
     if (!response.ok) {
-        const data: AuthErrorResponse = await response.json()
-        throw new AuthApiError(data.error.message, data.error.code)
+        throw await readApiError(response)
     }
     const data: RegisterResponse = await response.json()
     return data
@@ -79,8 +97,7 @@ export async function login(input: LoginInput): Promise<LoginResponse> {
         body: JSON.stringify(input),
     })
     if (!response.ok) {
-        const data: AuthErrorResponse = await response.json()
-        throw new AuthApiError(data.error.message, data.error.code)
+        throw await readApiError(response)
     }
     const data: LoginResponse = await response.json()
     return data
@@ -90,8 +107,7 @@ export async function login(input: LoginInput): Promise<LoginResponse> {
 export async function getMe(): Promise<MeResponse> {
     const response = await fetch('/api/auth/me')
     if (!response.ok) {
-        const data: AuthErrorResponse = await response.json()
-        throw new AuthApiError(data.error.message, data.error.code)
+        throw await readApiError(response)
     }
     const data: MeResponse = await response.json()
     return data
@@ -103,7 +119,6 @@ export async function logout(): Promise<void> {
         method: 'POST',
     })
     if (!response.ok) {
-        const data: AuthErrorResponse = await response.json()
-        throw new AuthApiError(data.error.message, data.error.code)
+        throw await readApiError(response)
     }
 }
