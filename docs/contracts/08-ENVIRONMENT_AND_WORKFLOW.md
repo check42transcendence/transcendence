@@ -318,7 +318,7 @@ As features land, CI must add meaningful tests for:
 Prisma migrations/constraints
 Auth
 Activity OCC
-Proposal majority/rejection/adoption concurrency
+Proposal majority/adoption concurrency
 Realtime room authorization
 commit-before-broadcast
 ```
@@ -424,6 +424,8 @@ Activity Locking
 Owner Transfer
 Proposal Edit/Delete
 Vote retract
+automatic Proposal rejection
+Proposal REJECTED status/lifecycle
 Rejected archive
 Revise & Fork
 Files
