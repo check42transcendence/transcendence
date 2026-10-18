@@ -119,15 +119,15 @@ For `PENDING`, normal Vote behaviour is defined by the Domain Contract.
 
 For `ACCEPTED`, Vote mutation is not allowed.
 
-For `REJECTED`, Vote mutation is not allowed in P0.
+P0 has no Proposal `REJECTED` authorization state.
 
 ## 9. Adoption Authorization
 
-Any current participant may request Adoption in the normal `PENDING` flow.
+Any current participant may request Adoption while the Proposal is `PENDING`.
 
-Backend verifies Membership, Trip relationship, current state, majority, scheduling input, and duplicate prevention.
+Backend verifies Membership, Trip relationship, current state, current strict majority, scheduling input, and duplicate prevention.
 
-For `REJECTED`, Adoption is not allowed in P0.
+A failed majority check does not change Proposal status.
 
 ## 10. Server-Controlled Proposal Status
 
@@ -137,10 +137,11 @@ Defined server transitions:
 
 ```text
 Create Proposal → PENDING
-PENDING + reject threshold → REJECTED
 PENDING + successful manual Adoption → ACCEPTED
 Delete Proposal-sourced Activity → ACCEPTED → PENDING
 ```
+
+`REJECT` Votes do not create a Proposal status transition in P0.
 
 ## 11. HTTP Auth Error Semantics
 

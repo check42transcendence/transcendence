@@ -43,6 +43,18 @@
     --tc-color-danger: #b94343;
     --tc-color-info: #3976a8;
 
+    /* Action states and control borders */
+    --tc-color-brand-pressed: #194831;
+    --tc-color-danger-hover: #9f3434;
+    --tc-color-border-control: #899087;
+    --tc-color-secondary-pressed: #e7e5de;
+    --tc-color-danger-pressed: #852b2b;
+
+    /* Disabled controls */
+    --tc-color-disabled-bg: #f0efea;
+    --tc-color-disabled-text: #7b8278;
+    --tc-color-disabled-border: #d7d8d0;
+
     /* Font sizes */
     --tc-font-size-hero: 40px;
     --tc-font-size-page-title: 28px;
@@ -81,6 +93,14 @@
     --color-warning: var(--tc-color-warning);
     --color-danger: var(--tc-color-danger);
     --color-info: var(--tc-color-info);
+    --color-brand-pressed: var(--tc-color-brand-pressed);
+    --color-danger-hover: var(--tc-color-danger-hover);
+    --color-border-control: var(--tc-color-border-control);
+    --color-secondary-pressed: var(--tc-color-secondary-pressed);
+    --color-danger-pressed: var(--tc-color-danger-pressed);
+    --color-disabled-bg: var(--tc-color-disabled-bg);
+    --color-disabled-text: var(--tc-color-disabled-text);
+    --color-disabled-border: var(--tc-color-disabled-border);
 
     /* Font family */
     --font-sans: var(--tc-font-sans);

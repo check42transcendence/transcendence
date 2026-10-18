@@ -146,7 +146,6 @@ Status:
 ```text
 PENDING
 ACCEPTED
-REJECTED
 ```
 
 Initial status:
@@ -155,54 +154,11 @@ Initial status:
 PENDING
 ```
 
-### Automatic rejection
+`PENDING` is the only open Proposal lifecycle state in P0.
 
-For a `PENDING` Proposal:
+A `REJECT` Vote does not change Proposal status. P0 has no automatic rejection threshold and no persisted Proposal `REJECTED` state.
 
-```text
-N = current Owner + Member count
-R = current REJECT Vote count from those participants
-```
-
-If:
-
-```text
-R >= ceil(N / 2)
-```
-
-the backend atomically performs:
-
-```text
-PENDING → REJECTED
-```
-
-The check is based on current Membership and current Vote state.
-
-For still-PENDING Proposals, majority-affecting mutations include at least:
-
-```text
-Vote create/change
-Invitation Accept / Membership join
-Member Leave
-```
-
-Those mutations must recompute the threshold consistently.
-
-### REJECTED terminal rule
-
-`REJECTED` is terminal for P0.
-
-Once a Proposal becomes `REJECTED`:
-
-```text
-Vote creation/change is closed
-manual Adoption is closed
-REJECTED does not return to PENDING
-REJECTED does not become ACCEPTED
-later Membership changes do not reopen it
-```
-
-P0 defines no rejected archive or revise/re-submit flow.
+A Proposal remains `PENDING` until successful manual Adoption changes it to `ACCEPTED`.
 
 ## 8. Vote
 
@@ -223,13 +179,13 @@ A participant may change:
 AGREE ↔ REJECT
 ```
 
-while the normal `PENDING` voting flow applies.
+while the Proposal is `PENDING`.
 
 P0 defines no retract-to-no-vote action.
 
 `ACCEPTED` Proposals do not accept Vote changes.
 
-`REJECTED` Proposals do not accept Vote creation/change in P0.
+REJECT Votes remain part of the vote summary but do not close a Proposal.
 
 ## 9. Strict Majority
 
@@ -256,23 +212,24 @@ Owner and non-voters count in `N`.
 
 Former participants do not.
 
+A change in Membership may change the current Adoption eligibility because it changes `N`, but it does not itself change Proposal status.
+
 ## 10. Adoption
 
-For the currently defined normal flow, any current participant may request Adoption from a `PENDING` Proposal.
+Any current participant may request Adoption from a `PENDING` Proposal.
 
 Backend must, at submit time:
 
 1. verify current Membership;
 2. verify Proposal belongs to Trip;
-3. verify Proposal is in the normal adoptable flow;
+3. verify Proposal is `PENDING`;
 4. recompute current participant count;
-5. recompute current REJECT count and apply automatic rejection if threshold has been reached;
-6. recompute current AGREE count;
-7. require Strict Majority;
-8. validate Activity scheduling;
-9. create exactly one Proposal-sourced Activity;
-10. set status to `ACCEPTED`;
-11. commit before realtime broadcast.
+5. recompute current AGREE count;
+6. require Strict Majority;
+7. validate Activity scheduling;
+8. create exactly one Proposal-sourced Activity;
+9. set status to `ACCEPTED`;
+10. commit before realtime broadcast.
 
 Frontend `canAdopt` is convenience state only and never replaces submit-time validation.
 
@@ -282,7 +239,7 @@ If majority disappears before submit:
 
 ```text
 no Activity
-status remains PENDING unless the rejection rule itself triggered
+status remains PENDING
 business conflict returned
 ```
 
@@ -316,11 +273,11 @@ Create Trip
 → all ItineraryDays
 
 Accept Invitation
-→ PENDING → ACCEPTED
+→ Invitation PENDING → ACCEPTED
 → MEMBER Membership
 
 Reject Invitation
-→ PENDING → REJECTED
+→ Invitation PENDING → REJECTED
 → no Membership
 
 Member Leave
@@ -330,17 +287,14 @@ Member Leave
 → historical Activity/Proposal remain
 
 Create Proposal
-→ PENDING
+→ Proposal PENDING
 
-Pending Proposal reaches reject threshold
-→ REJECTED
-
-Pending Proposal + strict majority + manual Adopt
+Proposal PENDING + strict majority + manual Adopt
 → Activity
-→ ACCEPTED
+→ Proposal ACCEPTED
 
 Delete Proposal-sourced Activity
-→ ACCEPTED → PENDING
+→ Proposal ACCEPTED → PENDING
 
 Delete Trip
 → delete complete Trip Workspace
@@ -356,6 +310,8 @@ Activity Lock
 Activity participants
 Proposal Edit/Delete
 Proposal Deadline/options
+automatic Proposal rejection
+Proposal REJECTED status/lifecycle
 Rejected archive
 Revise & Fork
 Vote retract

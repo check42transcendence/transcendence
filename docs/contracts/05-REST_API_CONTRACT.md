@@ -349,7 +349,6 @@ Canonical status:
 ```text
 PENDING
 ACCEPTED
-REJECTED
 ```
 
 Canonical vote summary:
@@ -372,6 +371,8 @@ currentUserDecision = AGREE | REJECT | null
 `pendingCount` is derived.
 
 `canAdopt` is convenience only.
+
+P0 has no Proposal `REJECTED` status. A REJECT Vote changes only the vote data/summary and does not close the Proposal.
 
 ## 11. Proposal Endpoints
 
@@ -414,23 +415,11 @@ or:
 
 No Vote DELETE/retract endpoint.
 
-For the normal `PENDING` flow, backend upserts the current User's Vote and recomputes the rejection threshold atomically.
+For a `PENDING` Proposal, backend upserts the current User's Vote and returns the updated Proposal/vote summary.
 
-If threshold is reached:
-
-```text
-PENDING → REJECTED
-```
-
-and the response returns the new Proposal status.
+A REJECT Vote does not create any Proposal status transition.
 
 `ACCEPTED` Vote mutation:
-
-```text
-409 PROPOSAL_VOTING_CLOSED
-```
-
-For `REJECTED`:
 
 ```text
 409 PROPOSAL_VOTING_CLOSED
@@ -442,7 +431,7 @@ For `REJECTED`:
 POST /api/trips/:tripId/proposals/:proposalId/adopt
 ```
 
-Any current participant in the normal PENDING flow.
+Any current participant while the Proposal is `PENDING`.
 
 Request:
 
@@ -478,13 +467,13 @@ returns:
 
 ### Majority lost
 
-If strict majority is no longer satisfied and rejection threshold did not trigger:
+If strict majority is no longer satisfied:
 
 ```text
 409 PROPOSAL_MAJORITY_LOST
 ```
 
-No Activity is created.
+No Activity is created and Proposal remains `PENDING`.
 
 ### Already accepted / concurrent double submit
 
@@ -493,14 +482,6 @@ No Activity is created.
 ```
 
 No second Activity.
-
-### REJECTED
-
-A `REJECTED` Proposal is terminal in P0 and cannot be Adopted:
-
-```text
-409 PROPOSAL_REJECTED
-```
 
 ## 14. Cross-Trip Safety
 
@@ -536,7 +517,6 @@ PROPOSAL_NOT_FOUND
 PROPOSAL_VOTING_CLOSED
 PROPOSAL_MAJORITY_LOST
 PROPOSAL_ALREADY_ACCEPTED
-PROPOSAL_REJECTED
 
 VALIDATION_ERROR
 MALFORMED_REQUEST
@@ -565,6 +545,8 @@ manual Day CRUD
 Unscheduled Pool
 Activity locks/participants
 Proposal Edit/Delete
+automatic Proposal rejection
+Proposal REJECTED status/lifecycle
 Rejected archive
 Revise & Fork
 Vote retract

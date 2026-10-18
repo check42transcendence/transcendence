@@ -1,75 +1,84 @@
-# React + TypeScript + Vite
+# TripCollab Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite, with Tailwind CSS v4, Inter, and Lucide icons.
 
-Currently, two official plugins are available:
+## Development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Use the Node.js version in the repository's `.nvmrc`. From `frontend/`
+in your development environment (the Ubuntu development container if used):
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm ci
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+Open `http://localhost:5173`. Vite updates the page when source files change.
+The `/api` proxy targets `127.0.0.1:3000`; the backend must be reachable
+from the same environment. UI styling can be developed without a backend.
+For the full Docker/HTTPS setup, see the [project README](../README.md).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Before submitting changes:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm run lint
+npm run build
 ```
+
+## Shared UI Components
+
+Components live in `src/components/ui/` and accept their native HTML
+attributes plus the props below.
+
+| Component | Props and behavior |
+| --- | --- |
+| `Button` | `variant`: `primary` (default), `secondary`, or `danger`; `isLoading` disables interaction and shows a centered spinner while preserving button dimensions and its accessible name. `disabled` uses the shared disabled colors. Defaults to `type="button"`. |
+| `Input` | Required `label`, optional `error`; supports `value`/`onChange`, `disabled`, and `readOnly`. Associates labels and error messages with the input. |
+| `Card` | A non-interactive container with shared padding, border, radius, and shadow. Place content and action controls inside it. |
+
+```tsx
+import { useState } from 'react'
+import { Button } from './components/ui/Button'
+import { Card } from './components/ui/Card'
+import { Input } from './components/ui/Input'
+
+export function Example() {
+  const [email, setEmail] = useState('')
+
+  return (
+    <Card className="space-y-4">
+      <Input
+        label="Email"
+        type="email"
+        name="email"
+        value={email}
+        onChange={(event) => setEmail(event.currentTarget.value)}
+      />
+      <Button variant="secondary" disabled={!email.trim()}>
+        Example action
+      </Button>
+    </Card>
+  )
+}
+```
+
+The example demonstrates composition; it does not submit data. Pages own
+request state, validation, error text, and confirmation for dangerous actions.
+Use separate state variables for independent controlled inputs.
+
+Buttons accept icons through `children`, for example a Lucide icon followed
+by text. Use `size={20}`, `strokeWidth={2}`, and `aria-hidden="true"` for
+decorative icons. Icon-only buttons need an accessible name (`aria-label`).
+
+Input hover keeps the default white background; focus and errors provide
+feedback. Card has no built-in hover effect or whole-card click action.
+
+## Styling
+
+Design values and Tailwind mappings live in
+`src/styles/tripcollab.tokens.css`; `src/index.css` loads them and defines
+base styles and the shared keyboard focus class, `tc-focus`.
+
+Reuse semantic classes such as `bg-brand`, `rounded-control`, and
+`text-muted`. Component classes are grouped into named constants with
+English comments. Use `className` for layout additions such as margins or
+width; do not rely on class-string order to override component colors or states.
