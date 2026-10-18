@@ -25,6 +25,17 @@ export interface AuthErrorResponse {
     }
 }
 
+// Keeps the backend error code alongside its message.
+export class AuthApiError extends Error {
+    code: string
+    
+    constructor(message: string, code: string) {
+        super(message)
+        this.name = 'AuthApiError'
+        this.code = code
+    }
+}
+
 // Sends registration data to the backend.
 export async function register(input: RegisterInput): Promise<RegisterResponse> {
     const response = await fetch('/api/auth/register', {
@@ -36,7 +47,7 @@ export async function register(input: RegisterInput): Promise<RegisterResponse> 
     })
     if (!response.ok) {
         const data: AuthErrorResponse = await response.json()
-        throw new Error(data.error.message)
+        throw new AuthApiError(data.error.message, data.error.code)
     }
     const data: RegisterResponse = await response.json()
     return data
