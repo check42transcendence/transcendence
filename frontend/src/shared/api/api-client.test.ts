@@ -52,7 +52,7 @@ it('throws an ApiError for a backend error response', async () => {
                 error: {
                     code: 'EXAMPLE_CONFLICT',
                     message: 'Example conflict',
-                    details: { filed: 'name' }
+                    details: { field: 'name' }
                 },
             }),
             {
@@ -71,7 +71,7 @@ it('throws an ApiError for a backend error response', async () => {
         code: 'EXAMPLE_CONFLICT',
         message: 'Example conflict',
         status: 409,
-        details: { filed: 'name' },
+        details: { field: 'name' },
     })
 })
 
