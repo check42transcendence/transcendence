@@ -3,19 +3,27 @@ interface ApiErrorResponse {
     error: {
         code: string
         message: string
+        details?: unknown
     }
 }
 
-// Stores an API error's message, code, and HTTP status.
+// Stores an API error's message, code, status, and optional details.
 export class ApiError extends Error {
     code: string
     status: number
+    details: unknown
 
-    constructor(message: string, code: string, status: number) {
+    constructor(
+        message: string,
+        code: string,
+        status: number,
+        details?: unknown,
+    ) {
         super(message)
         this.name = 'ApiError'
         this.code = code
         this.status = status
+        this.details = details
     }
 }
 
@@ -23,6 +31,7 @@ export class ApiError extends Error {
 export async function readApiError(response: Response): Promise<ApiError> {
     let message = `Request failed (HTTP ${response.status})`
     let code = 'HTTP_ERROR'
+    let details: unknown = undefined
 
     try {
         const data: ApiErrorResponse = await response.json()
@@ -33,9 +42,10 @@ export async function readApiError(response: Response): Promise<ApiError> {
         ) {
             message = data.error.message
             code = data.error.code
+            details = data.error.details
         }
     } catch {
         // Keep the default error if the response cannot be read as expected.
     }
-    return new ApiError(message, code, response.status)
+    return new ApiError(message, code, response.status, details)
 }
