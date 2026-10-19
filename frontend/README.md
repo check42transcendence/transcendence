@@ -25,6 +25,18 @@ npm run lint
 npm run build
 ```
 
+## Routing
+
+`main.tsx` provides one `BrowserRouter`; routes are defined in `App.tsx`.
+
+- `/` redirects to `/login`.
+- `/login` and `/register` show the Auth pages.
+- Unknown paths show the not-found page.
+
+Use React Router navigation instead of local state to switch pages.
+Run `npm test` for API and routing tests. Routing tests use jsdom
+and do not require a backend.
+
 ## Shared API Client
 
 Use the helpers in `src/shared/api/api-client.ts`:
