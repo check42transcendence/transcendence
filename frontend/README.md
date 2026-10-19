@@ -20,9 +20,29 @@ For the full Docker/HTTPS setup, see the [project README](../README.md).
 Before submitting changes:
 
 ```bash
+npm test
 npm run lint
 npm run build
 ```
+
+## Shared API Client
+
+Use the helpers in `src/shared/api/api-client.ts`:
+
+| Helper | Use |
+| --- | --- |
+| `apiClient(path, options?)` | Returns the raw response, including empty `204` responses. |
+| `apiJson<T>(path, options?)` | Reads a JSON response. |
+| `apiPostJson<T>(path, data)` | Sends JSON with POST and reads a JSON response. |
+
+Pass paths such as `/auth/me`; the client adds `/api` and uses same-origin
+cookie credentials. Type `T` describes the expected data without runtime validation.
+
+HTTP failures throw `ApiError` with `code`, `message`, `status`, and optional
+`details`. Unreadable error responses use `HTTP_ERROR`. Pages handle loading,
+error messages, and navigation.
+
+Run `npm test` to check the client with mocked requests; no backend is required.
 
 ## Shared UI Components
 
