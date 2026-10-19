@@ -39,11 +39,32 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Unit tests
+        run: npm test
+
+
   backend:
     name: Backend checks
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_USER: transcendence
+          POSTGRES_PASSWORD: ci_only
+          POSTGRES_DB: transcendence
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U transcendence -d transcendence"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
       DATABASE_URL: postgresql://transcendence:ci_only@localhost:5432/transcendence
+
     defaults:
       run:
         working-directory: backend
@@ -76,6 +97,9 @@ jobs:
 
       - name: Unit tests
         run: npm test
+
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
 
       - name: End-to-end tests
         run: npm run test:e2e

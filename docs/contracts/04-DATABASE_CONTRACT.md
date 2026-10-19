@@ -31,7 +31,7 @@ Native PostgreSQL enums:
 member_role: OWNER | MEMBER
 invitation_status: PENDING | ACCEPTED | REJECTED
 vote_decision: AGREE | REJECT
-proposal_status: PENDING | ACCEPTED | REJECTED
+proposal_status: PENDING | ACCEPTED
 ```
 
 P0 Activity does not cross midnight.
@@ -260,12 +260,13 @@ Defined transitions:
 
 ```text
 Create → PENDING
-PENDING → REJECTED when R >= ceil(N/2)
 PENDING → ACCEPTED after successful manual Adoption
 ACCEPTED → PENDING when Proposal-sourced Activity is deleted
 ```
 
-`REJECTED` is terminal in P0. No further Vote mutation, Adoption, or status transition is permitted from `REJECTED`.
+P0 has no persisted Proposal `REJECTED` value and no automatic rejection transition.
+
+A REJECT Vote affects vote counts only. It never changes Proposal status.
 
 ## 11. proposal_vote
 
@@ -306,12 +307,7 @@ A > N/2
 requiredAgreeCount = floor(N/2) + 1
 ```
 
-Automatic rejection while Proposal is PENDING:
-
-```text
-R >= ceil(N/2)
-→ PENDING → REJECTED
-```
+`R` is used for vote summary/presentation only. P0 defines no reject threshold and no status transition based on `R`.
 
 ## 13. Canonical Lock Order
 
@@ -350,11 +346,10 @@ verify no current Membership
 create MEMBER Membership
 set Invitation ACCEPTED
 set responded_at
-for affected Proposals still PENDING:
-  recompute N/R
-  apply PENDING→REJECTED if threshold reached
 COMMIT
 ```
+
+Accepting a new Member may change current Proposal vote summaries and Adoption eligibility because `N` changes, but it does not change Proposal status.
 
 Reject Invitation changes Invitation state only.
 
@@ -369,18 +364,16 @@ lock Trip
 verify role=MEMBER
 delete leaving User's Vote rows for this Trip
 delete Membership
-for affected Proposals still PENDING:
-  lock Proposal in canonical order
-  recompute N/R
-  apply PENDING→REJECTED if threshold reached
 COMMIT
 ```
 
 Historical Activities/Proposals remain.
 
+Leave may change current Proposal vote summaries and Adoption eligibility because Membership and Vote rows change, but it does not change Proposal status.
+
 ## 17. Vote Mutation Transaction
 
-This transaction is defined for the normal `PENDING` flow.
+This transaction is defined for `PENDING` Proposals.
 
 ```text
 lock Trip
@@ -389,17 +382,16 @@ verify current Membership
 verify Proposal belongs to Trip
 verify Proposal is PENDING
 insert/update current Vote
-recompute N/R
-if R >= ceil(N/2):
-  set status=REJECTED
 COMMIT
 ```
 
-If Proposal is already `REJECTED`, Vote mutation is rejected with the canonical closed-voting conflict.
+A REJECT Vote never changes the Proposal from `PENDING` to another status.
+
+If Proposal is already `ACCEPTED`, Vote mutation is rejected with the canonical closed-voting conflict.
 
 ## 18. Adoption Transaction
 
-This transaction is defined for the normal `PENDING` flow.
+This transaction is defined for `PENDING` Proposals.
 
 ```text
 lock Trip
@@ -407,11 +399,7 @@ lock Proposal
 verify current Membership
 verify Proposal belongs to Trip
 verify Proposal is PENDING
-if Proposal is REJECTED, reject Adoption as closed in P0
-recompute N/R
-if rejection threshold reached:
-  set REJECTED and do not create Activity
-otherwise recompute A
+recompute N/A
 require A > N/2
 validate Day/time
 create Activity(proposal_id=Proposal.id)
@@ -423,7 +411,7 @@ Only after COMMIT may realtime broadcast success.
 
 ### Lost majority
 
-If strict AGREE majority is lost without triggering rejection:
+If strict AGREE majority is not satisfied at submit time:
 
 ```text
 ROLLBACK Adoption
@@ -543,10 +531,10 @@ At minimum verify:
 10. one current Vote per User/Proposal;
 11. Leave physically deletes that Member's Votes;
 12. strict-majority calculation;
-13. rejection threshold `R >= ceil(N/2)` for PENDING;
-14. Invitation Accept / Leave can re-evaluate PENDING threshold;
-15. Adoption rechecks state inside transaction;
-16. lost majority creates no Activity;
+13. REJECT Vote updates vote data but leaves Proposal `PENDING`;
+14. Invitation Accept / Leave may change current majority without changing Proposal status;
+15. Adoption rechecks current state and majority inside transaction;
+16. lost majority creates no Activity and leaves Proposal `PENDING`;
 17. concurrent Adoption creates at most one Activity;
 18. deleting Proposal-sourced Activity performs `ACCEPTED→PENDING`;
 19. Trip cascade removes Workspace.
@@ -560,6 +548,8 @@ Trip Edit
 Unscheduled pool
 Activity locks/participants
 Proposal Edit/Delete
+automatic Proposal rejection
+Proposal REJECTED status/lifecycle
 Rejected archive
 Revise & Fork
 Owner Transfer

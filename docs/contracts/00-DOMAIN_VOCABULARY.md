@@ -3,7 +3,7 @@
 Status: Frozen  
 Scope: P0  
 Owner: Tech Lead  
-Product baseline: Frozen P0 Scope / Business Rules — updated 2026-10-11
+Product baseline: Frozen P0 Scope / Business Rules — updated 2026-10-18
 
 ## Purpose
 
@@ -112,7 +112,6 @@ Persisted status:
 ```text
 PENDING
 ACCEPTED
-REJECTED
 ```
 
 Meaning:
@@ -123,54 +122,15 @@ PENDING
 
 ACCEPTED
 → a successful manual Adoption has created one current Proposal-sourced Activity.
-
-REJECTED
-→ the automatic rejection threshold was reached; this is terminal in P0.
 ```
 
 Proposal status is server-controlled.
 
-### Automatic rejection threshold
+P0 has no Proposal `REJECTED` status and no automatic rejection transition.
 
-Let:
+`REJECT` Votes remain normal Vote decisions. They affect the current vote summary and therefore whether a strict AGREE majority exists, but they do not close the Proposal or change its persisted status.
 
-```text
-N = number of Current Trip Participants
-R = number of current REJECT Votes from those participants
-```
-
-For a `PENDING` Proposal:
-
-```text
-R >= ceil(N / 2)
-→ status becomes REJECTED automatically
-```
-
-Examples:
-
-```text
-N=4 → 2 REJECT triggers
-N=5 → 3 REJECT triggers
-N=6 → 3 REJECT triggers
-```
-
-This threshold is mathematically the point at which a strict AGREE majority is impossible.
-
-### REJECTED behaviour in P0
-
-`REJECTED` is terminal for P0.
-
-After a Proposal becomes `REJECTED`:
-
-```text
-no further Vote creation/change
-no manual Adoption
-no REJECTED → PENDING transition
-no REJECTED → ACCEPTED transition
-no automatic reopening after later Membership changes
-```
-
-Rejected archive, Revise & Fork, and other post-rejection workflows remain outside P0.
+A Proposal remains `PENDING` until a successful manual Adoption changes it to `ACCEPTED`.
 
 ## 10. Vote
 
@@ -197,6 +157,8 @@ One User has at most one current Vote per Proposal.
 
 P0 does not define Vote retraction back to no Vote.
 
+While the Proposal is `PENDING`, a participant may change their current Vote between `AGREE` and `REJECT`.
+
 ## 11. Strict Majority
 
 Let:
@@ -219,6 +181,8 @@ requiredAgreeCount = floor(N / 2) + 1
 ```
 
 Owner and non-voters are included in `N`.
+
+A high REJECT count does not create a separate Proposal lifecycle state in P0.
 
 ## 12. Vote Statistics
 
@@ -257,6 +221,8 @@ Adoption is not automatic.
 
 At most one current Activity may originate from one Proposal.
 
+If Strict Majority is not satisfied at submit time, Adoption fails and the Proposal remains `PENDING`.
+
 ## 14. Delete Proposal-Sourced Activity
 
 Deleting the current Activity created through an accepted Proposal performs atomically:
@@ -282,7 +248,7 @@ Realtime is not the authoritative persisted state.
 MembershipRole: OWNER | MEMBER
 InvitationStatus: PENDING | ACCEPTED | REJECTED
 VoteDecision: AGREE | REJECT
-ProposalStatus: PENDING | ACCEPTED | REJECTED
+ProposalStatus: PENDING | ACCEPTED
 ```
 
 ## Explicit P0 exclusions
@@ -303,6 +269,8 @@ Activity participants
 Owner Transfer
 Proposal Edit/Delete
 Proposal Deadline/options
+automatic Proposal rejection
+Proposal REJECTED status/lifecycle
 Rejected-Proposal archive
 Revise & Fork
 Vote retract

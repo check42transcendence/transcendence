@@ -1,52 +1,68 @@
+
 import { useState } from 'react'
+import { LoginPage } from './pages/LoginPage'
+import { RegisterPage } from './pages/RegisterPage'
 
 function App() {
-  const [status, setStatus] = useState('Not checked')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [currentPage, setCurrentPage] = useState<'login' | 'register'>('login')
 
-  async function checkBackend() {
+  async function handleLogin(credentials: {
+    email: string
+    password: string
+  }) {
     setLoading(true)
-    setStatus('Checking...')
+    setError('')
 
     try {
-      const response = await fetch('/api/health')
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(credentials),
+      })
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
+        const data = await response.json().catch(() => null)
+        throw new Error(
+          data?.error?.message ?? 'Unable to sign in. Please try again.',
+        )
       }
 
-      const data = await response.json()
-
-      if (data.status !== 'ok') {
-        throw new Error('Unexpected response')
-      }
-
-      setStatus('Backend is running')
-    } catch {
-      setStatus('Unable to verify backend status')
+      window.location.assign('/home')
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to sign in. Please try again.',
+      )
+      throw err
     } finally {
       setLoading(false)
     }
   }
 
-  return (
-    <main className="mx-auto max-w-[960px] space-y-4 px-4 py-8">
-      <h1 className="text-page-title">Travel Planner</h1>
-      <p className="rounded-card bg-surface p-5 text-ink shadow-subtle">
-        Plan your next trip together.
-      </p>
-
-      <button
-        className="tc-focus h-control rounded-control bg-brand px-5 text-small text-surface enabled:hover:bg-brand-hover transition-colors duration-(--tc-duration-fast) motion-reduce:transition-none"
-        onClick={checkBackend}
-        disabled={loading}
-      >
-        Check backend
-      </button>
-
-      <p role="status">{status}</p>
-    </main>
-  )
+  return currentPage === 'login' ? (
+  <LoginPage
+    onSubmit={handleLogin}
+    loading={loading}
+    error={error}
+    onRegisterClick={() => setCurrentPage('register')}
+  />
+) : (
+  <RegisterPage
+    onSubmit={async (credentials) => {
+      console.log('Register form submitted:', {
+        email: credentials.email,
+        username: credentials.username,
+      })
+    }}
+    onLoginClick={() => setCurrentPage('login')}
+  />
+)
 }
 
 export default App

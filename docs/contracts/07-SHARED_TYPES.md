@@ -37,14 +37,13 @@ type VoteDecision =
 type ProposalStatus =
   | 'PENDING'
   | 'ACCEPTED'
-  | 'REJECTED'
 ```
 
 `PENDING` is **not** a VoteDecision.
 
 No Vote is represented by `null` / absence.
 
-Proposal `REJECTED` means rejection threshold reached and is terminal in P0.
+P0 has no Proposal `REJECTED` shared status. A REJECT Vote does not create a Proposal lifecycle transition.
 
 ## 3. User Types
 
@@ -179,12 +178,9 @@ pendingCount
 
 requiredAgreeCount
 = floor(participantCount / 2) + 1
-
-automatic rejection while PENDING
-= rejectCount >= ceil(participantCount / 2)
 ```
 
-No separate reject-threshold field is required in the shared DTO because it is derived from `participantCount`.
+`rejectCount` is part of the shared vote summary only. It does not create an automatic Proposal status transition.
 
 ```ts
 type PersonalVoteState = VoteDecision | null
@@ -329,7 +325,6 @@ type ApiErrorCode =
   | 'PROPOSAL_VOTING_CLOSED'
   | 'PROPOSAL_MAJORITY_LOST'
   | 'PROPOSAL_ALREADY_ACCEPTED'
-  | 'PROPOSAL_REJECTED'
   | 'VALIDATION_ERROR'
   | 'MALFORMED_REQUEST'
   | 'INTERNAL_ERROR'
@@ -366,10 +361,6 @@ interface ProposalVoteUpdatedEventData {
   voteSummary: SharedVoteSummary
 }
 
-interface ProposalRejectedEventData {
-  proposal: SharedProposal
-}
-
 interface ProposalAdoptedEventData {
   proposal: SharedProposal
   activity: Activity
@@ -394,8 +385,6 @@ interface ServerToClientEvents {
     (event: RealtimeEnvelope<ProposalCreatedEventData>) => void
   'proposal:vote-updated':
     (event: RealtimeEnvelope<ProposalVoteUpdatedEventData>) => void
-  'proposal:rejected':
-    (event: RealtimeEnvelope<ProposalRejectedEventData>) => void
   'proposal:adopted':
     (event: RealtimeEnvelope<ProposalAdoptedEventData>) => void
   'proposal:reopened':
@@ -461,6 +450,7 @@ UnscheduledActivity
 ProposalDeadline
 ProposalOption
 ProposalEditRequest
+ProposalRejectionState
 RejectedProposalArchive
 ReviseAndForkRequest
 OwnershipTransfer
