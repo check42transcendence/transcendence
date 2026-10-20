@@ -23,7 +23,7 @@
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "test:db:prepare": "node ./scripts/validate-test-database-env.mjs && npm run prisma:migrate:deploy",
+    "test:db:prepare": "node ./scripts/prepare-test-database.mjs",
     "test:db": "vitest run --config ./vitest.config.db.ts"
   },
   "dependencies": {
