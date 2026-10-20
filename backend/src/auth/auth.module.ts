@@ -2,12 +2,15 @@ import { Module } from '@nestjs/common';
 import { UsersModule } from '../users/users.module.js';
 import { UsersRepository } from '../users/users.repository.js';
 import { AuthController } from './auth.controller.js';
-import { AuthUserRepository } from './auth.dependencies.js';
 import { AuthService } from './auth.service.js';
+import {
+  AuthPasswordService,
+  AuthUserRepository,
+} from './auth.dependencies.js';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
-import { MockAuthPasswordService } from './mocks/mock-auth-password.service.js';
+import { hash, verify } from './utils/password.util.js';
 import { MockAuthSessionService } from './mocks/mock-auth-session.service.js';
 
 // Registers auth components with temporary mock dependencies.
@@ -35,12 +38,15 @@ import { MockAuthSessionService } from './mocks/mock-auth-session.service.js';
   controllers: [AuthController],
   providers: [
     AuthService,
-    MockAuthPasswordService,
     MockAuthSessionService,
     JwtAuthGuard,
     {
       provide: AuthUserRepository,
       useExisting: UsersRepository,
+    },
+    {
+      provide: AuthPasswordService,
+      useValue: { hash, verify },
     },
   ],
   exports: [JwtModule, JwtAuthGuard],

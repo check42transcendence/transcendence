@@ -7,8 +7,10 @@ import {
 import { AuthUserConflictError } from '../users/auth-user-conflict.error.js';
 import type { RegisterDto } from './dto/register.dto.js';
 import type { LoginDto } from './dto/login.dto.js';
-import { AuthUserRepository } from './auth.dependencies.js';
-import { MockAuthPasswordService } from './mocks/mock-auth-password.service.js';
+import {
+  AuthPasswordService,
+  AuthUserRepository,
+} from './auth.dependencies.js';
 
 // Coordinates user creation, credential checks, and current-user lookup.
 @Injectable()
@@ -17,8 +19,8 @@ export class AuthService {
     @Inject(AuthUserRepository)
     private readonly users: AuthUserRepository,
 
-    @Inject(MockAuthPasswordService)
-    private readonly passwords: MockAuthPasswordService,
+    @Inject(AuthPasswordService)
+    private readonly passwords: AuthPasswordService,
   ) {}
 
   // Uses the same error for an unknown email and a wrong password.

@@ -6,7 +6,10 @@ import { MockAuthPasswordService } from './mocks/mock-auth-password.service.js';
 import { MockAuthSessionService } from './mocks/mock-auth-session.service.js';
 import { MockAuthUserStore } from './mocks/mock-auth-user.store.js';
 import { PrismaService } from '../database/prisma.service.js';
-import { AuthUserRepository } from './auth.dependencies.js';
+import {
+  AuthPasswordService,
+  AuthUserRepository,
+} from './auth.dependencies.js';
 
 // Checks HTTP responses and session calls using mock dependencies.
 describe('AuthController login', () => {
@@ -16,11 +19,13 @@ describe('AuthController login', () => {
     })
       .overrideProvider(AuthUserRepository)
       .useClass(MockAuthUserStore)
+      .overrideProvider(AuthPasswordService)
+      .useClass(MockAuthPasswordService)
       .overrideProvider(PrismaService)
       .useValue({})
       .compile();
 
-    const passwords = module.get(MockAuthPasswordService);
+    const passwords = module.get<MockAuthPasswordService>(AuthPasswordService);
     passwords.verificationSucceeds = true;
 
     const sessions = module.get(MockAuthSessionService);
@@ -76,6 +81,8 @@ describe('AuthController login', () => {
     })
       .overrideProvider(AuthUserRepository)
       .useClass(MockAuthUserStore)
+      .overrideProvider(AuthPasswordService)
+      .useClass(MockAuthPasswordService)
       .overrideProvider(PrismaService)
       .useValue({})
       .compile();
@@ -120,6 +127,8 @@ describe('AuthController login', () => {
     })
       .overrideProvider(AuthUserRepository)
       .useClass(MockAuthUserStore)
+      .overrideProvider(AuthPasswordService)
+      .useClass(MockAuthPasswordService)
       .overrideProvider(PrismaService)
       .useValue({})
       .compile();
