@@ -212,7 +212,6 @@ npm test
 npm run test:e2e
 ```
 
-
 ### Database integration tests
 
 Database integration tests must use a dedicated PostgreSQL database whose
@@ -240,6 +239,22 @@ a database whose name does not end with `_test`.
 
 Database tests may clear table data between tests, but they preserve the
 database schema and Prisma migration history.
+
+### Containerized stack:
+
+Generate the local certificate first using the setup instructions above.
+
+```bash
+docker compose config --quiet
+docker compose up --build --detach --wait
+docker compose exec -T frontend nginx -t
+curl -I http://localhost:8080/api/health
+curl --cacert certs/localhost.crt --fail https://localhost:8443/api/health
+docker compose down
+```
+
+Expect HTTP `308` with an HTTPS redirect, followed by HTTPS `200` and
+`{"status":"ok"}`. `--cacert` verifies the locally generated certificate.
 
 ## Continuous Integration
 
