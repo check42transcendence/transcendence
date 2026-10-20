@@ -11,9 +11,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { hash, verify } from './utils/password.util.js';
-import { MockAuthSessionService } from './mocks/mock-auth-session.service.js';
+import { AuthSessionService } from './auth-session.service.js';
 
-// Registers auth components with temporary mock dependencies.
+// Connects auth routes, user storage, password tools, and JWT support.
 @Module({
   imports: [
     UsersModule,
@@ -38,12 +38,14 @@ import { MockAuthSessionService } from './mocks/mock-auth-session.service.js';
   controllers: [AuthController],
   providers: [
     AuthService,
-    MockAuthSessionService,
+    AuthSessionService,
     JwtAuthGuard,
+    // Uses the existing PostgreSQL user repository.
     {
       provide: AuthUserRepository,
       useExisting: UsersRepository,
     },
+    // Uses the shared bcrypt password functions.
     {
       provide: AuthPasswordService,
       useValue: { hash, verify },

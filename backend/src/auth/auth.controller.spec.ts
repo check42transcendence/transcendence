@@ -3,16 +3,19 @@ import request from 'supertest';
 import { vi } from 'vitest';
 import { AuthModule } from './auth.module.js';
 import { MockAuthPasswordService } from './mocks/mock-auth-password.service.js';
-import { MockAuthSessionService } from './mocks/mock-auth-session.service.js';
 import { MockAuthUserStore } from './mocks/mock-auth-user.store.js';
 import { PrismaService } from '../database/prisma.service.js';
 import {
   AuthPasswordService,
   AuthUserRepository,
 } from './auth.dependencies.js';
+import { AuthSessionService } from './auth-session.service.js';
+import { JwtService } from '@nestjs/jwt';
+import cookieParser from 'cookie-parser';
 
-// Checks HTTP responses and session calls using mock dependencies.
+// Tests auth routes with mock users and passwords, using real JWT sessions.
 describe('AuthController login', () => {
+  // Starts a session after login, but not after registration.
   it('calls the session tool after successful verification', async () => {
     const module = await Test.createTestingModule({
       imports: [AuthModule],
@@ -28,7 +31,7 @@ describe('AuthController login', () => {
     const passwords = module.get<MockAuthPasswordService>(AuthPasswordService);
     passwords.verificationSucceeds = true;
 
-    const sessions = module.get(MockAuthSessionService);
+    const sessions = module.get(AuthSessionService);
     const startSpy = vi.spyOn(sessions, 'start');
 
     const app = module.createNestApplication();
@@ -75,7 +78,42 @@ describe('AuthController login', () => {
     }
   });
 
-  it('returns the user identified by the session tool', async () => {
+  // Clears the session and returns an empty response.
+  it('calls the session clear tool and returns 204', async () => {
+    const module = await Test.createTestingModule({
+      imports: [AuthModule],
+    })
+      .overrideProvider(AuthUserRepository)
+      .useClass(MockAuthUserStore)
+      .overrideProvider(AuthPasswordService)
+      .useClass(MockAuthPasswordService)
+      .overrideProvider(PrismaService)
+      .useValue({})
+      .compile();
+
+    const sessions = module.get(AuthSessionService);
+    const clearSpy = vi.spyOn(sessions, 'clear');
+
+    const app = module.createNestApplication();
+    app.setGlobalPrefix('api');
+
+    try {
+      await app.init();
+
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/logout')
+        .expect(204);
+
+      expect(response.text).toBe('');
+      expect(clearSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      await app.close();
+      vi.restoreAllMocks();
+    }
+  });
+
+  // Loads the user identified by a valid JWT.
+  it('returns the user identified by the JWT', async () => {
     const module = await Test.createTestingModule({
       imports: [AuthModule],
     })
@@ -95,11 +133,11 @@ describe('AuthController login', () => {
       passwordHash: 'mock-password-hash',
     });
 
-    const sessions = module.get(MockAuthSessionService);
-
-    vi.spyOn(sessions, 'getCurrentUserId').mockResolvedValue(user.id);
+    const jwt = module.get(JwtService);
+    const token = await jwt.signAsync({ sub: user.id });
 
     const app = module.createNestApplication();
+    app.use(cookieParser());
     app.setGlobalPrefix('api');
 
     try {
@@ -107,6 +145,7 @@ describe('AuthController login', () => {
 
       await request(app.getHttpServer())
         .get('/api/auth/me')
+        .set('Cookie', `token=${token}`)
         .expect(200)
         .expect({
           user: {
@@ -121,7 +160,8 @@ describe('AuthController login', () => {
     }
   });
 
-  it('calls the session clear tool and returns 204', async () => {
+  // Rejects current-user requests without an authentication cookie.
+  it('rejects unauthenticated requests to me', async () => {
     const module = await Test.createTestingModule({
       imports: [AuthModule],
     })
@@ -133,24 +173,61 @@ describe('AuthController login', () => {
       .useValue({})
       .compile();
 
-    const sessions = module.get(MockAuthSessionService);
-    const clearSpy = vi.spyOn(sessions, 'clear');
-
     const app = module.createNestApplication();
+    app.use(cookieParser());
     app.setGlobalPrefix('api');
 
     try {
       await app.init();
 
-      const response = await request(app.getHttpServer())
-        .post('/api/auth/logout')
-        .expect(204);
-
-      expect(response.text).toBe('');
-      expect(clearSpy).toHaveBeenCalledTimes(1);
+      await request(app.getHttpServer())
+        .get('/api/auth/me')
+        .expect(401)
+        .expect({
+          error: {
+            code: 'AUTHENTICATION_REQUIRED',
+            message: 'Authentication required',
+            details: {},
+          },
+        });
     } finally {
       await app.close();
-      vi.restoreAllMocks();
+    }
+  });
+
+  // Rejects requests containing an invalid JWT.
+  it('rejects requests to me with an invalid token', async () => {
+    const module = await Test.createTestingModule({
+      imports: [AuthModule],
+    })
+      .overrideProvider(AuthUserRepository)
+      .useClass(MockAuthUserStore)
+      .overrideProvider(AuthPasswordService)
+      .useClass(MockAuthPasswordService)
+      .overrideProvider(PrismaService)
+      .useValue({})
+      .compile();
+
+    const app = module.createNestApplication();
+    app.use(cookieParser());
+    app.setGlobalPrefix('api');
+
+    try {
+      await app.init();
+
+      await request(app.getHttpServer())
+        .get('/api/auth/me')
+        .set('Cookie', 'token=invalid-token')
+        .expect(401)
+        .expect({
+          error: {
+            code: 'AUTHENTICATION_REQUIRED',
+            message: 'Authentication required',
+            details: {},
+          },
+        });
+    } finally {
+      await app.close();
     }
   });
 });

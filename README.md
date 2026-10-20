@@ -19,16 +19,16 @@ Currently implemented:
   Tailwind CSS v4, Inter, and Lucide. See the [frontend guide](frontend/README.md)
   for component usage and styling conventions.
 - NestJS backend with a `GET /api/health` endpoint.
-- Auth API flows for register, login, me, and logout with PostgreSQL user storage
-  and temporary password/session mocks.
+- Auth APIs for registration, login, current-user lookup, and logout, using
+  PostgreSQL, bcrypt password hashing, and JWT authentication cookies.
 - PostgreSQL with persistent storage and Prisma database integration.
 - Docker Compose stack with service health checks and a non-root backend.
 - Nginx gateway with local HTTPS and HTTP-to-HTTPS redirection.
 - GitHub Actions checks for the frontend, backend, Prisma, and container stack.
 
-Auth uses PostgreSQL for user persistence. Password handling and sessions
-still use temporary mocks. Real password hashing, JWT cookies, and authenticated
-sessions are pending integration.
+Auth backend integration is complete. Frontend authentication integration
+is still in progress. Registration does not log the user in; login sets a
+Secure, HttpOnly cookie. Logout clears the cookie without revoking issued JWTs.
 
 Domain database models and migrations, travel features, and real-time
 collaboration are not implemented yet.
@@ -61,9 +61,9 @@ Create the local environment file:
 cp .env.example .env
 ```
 
-Replace the example PostgreSQL password in `.env` with a local
-development password. The `.env` file is ignored by Git and must not
-be committed.
+Replace the example PostgreSQL password and `JWT_SECRET` in `.env`.
+Generate a random JWT secret with `openssl rand -hex 32`.
+The `.env` file is ignored by Git and must not be committed.
 
 Generate your local certificate once from the repository root:
 
@@ -152,8 +152,8 @@ nvm install
 nvm use
 ```
 
-The complete backend requires a reachable PostgreSQL database and a
-`DATABASE_URL`. Use the containerized application workflow above to run
+The complete backend requires a reachable PostgreSQL database,
+`DATABASE_URL`, and `JWT_SECRET`. Use the containerized application workflow above to run
 the integrated frontend, backend, and database stack.
 
 To run the backend outside Compose, provide a `DATABASE_URL` for a
@@ -163,13 +163,19 @@ PostgreSQL instance reachable from the current environment:
 cd backend
 npm ci
 export DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DATABASE'
+export JWT_SECRET="$(openssl rand -hex 32)"
 npm run prisma:generate
+npm run prisma:migrate:deploy
 npm run start:dev
 ```
 
 Replace the URL placeholders with your database settings. Compose's
 PostgreSQL service is not published to the host, so this workflow requires
 a separately reachable database.
+
+Apply committed migrations before using Auth, and again after pulling new
+migrations. Keep `JWT_SECRET` stable between starts to preserve login sessions.
+Authentication cookies require HTTPS; use the Compose gateway for login testing.
 
 Prisma Client is generated locally and ignored by Git. Re-run
 `npm run prisma:generate` from `backend/` after changing or pulling schema
@@ -210,13 +216,16 @@ npm run build
 ```bash
 cd backend
 export DATABASE_URL='postgresql://transcendence:validation_only@localhost:5432/transcendence'
+export JWT_SECRET='local-test-only-secret'
 npm run prisma:validate
 npm run prisma:generate
 npm run lint
 npm run build
 npm test
-npm run test:e2e
 ```
+
+`npm run test:e2e` also requires a reachable, migrated PostgreSQL database.
+Replace the example `DATABASE_URL` with a real test database URL before running it.
 
 ### Database integration tests
 
@@ -267,9 +276,10 @@ Expect HTTP `308` with an HTTPS redirect, followed by HTTPS `200` and
 GitHub Actions runs the following jobs for pull requests targeting
 `main` and for pushes to `main`:
 
-- `Frontend checks`: dependency installation, lint, and production build.
+- `Frontend checks`: dependency installation, lint, build, and unit tests.
 - `Backend checks`: dependency installation, Prisma schema validation,
-  Prisma Client generation, lint, build, unit tests, and end-to-end tests.
+  Prisma Client generation, database integration tests, lint, build, unit tests,
+  and end-to-end tests.
 - `Container checks`: temporary certificate generation, Compose validation,
   image builds, health checks, HTTP redirection, and HTTPS page/API checks.
 

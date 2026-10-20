@@ -7,24 +7,26 @@ import {
   Get,
   ValidationPipe,
   HttpCode,
-  Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { AuthService } from './auth.service.js';
-import type { Request, Response } from 'express';
-import { MockAuthSessionService } from './mocks/mock-auth-session.service.js';
+import type { Response } from 'express';
+import { AuthSessionService } from './auth-session.service.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { CurrentUser } from './decorators/current-user.decorator.js';
 
-// Handles auth HTTP requests and calls the user and session services.
+// Handles registration, login, logout, and current-user requests.
 @Controller('auth')
 export class AuthController {
   constructor(
     @Inject(AuthService)
     private readonly authService: AuthService,
 
-    @Inject(MockAuthSessionService)
-    private readonly sessions: MockAuthSessionService,
+    @Inject(AuthSessionService)
+    private readonly sessions: AuthSessionService,
   ) {}
 
   // Validates registration input without starting a session.
@@ -52,7 +54,7 @@ export class AuthController {
     return this.authService.register(input);
   }
 
-  // Starts a session only after credential verification succeeds.
+  // Verifies credentials and sets the authentication cookie.
   @Post('login')
   @HttpCode(200)
   async login(
@@ -80,17 +82,17 @@ export class AuthController {
     return result;
   }
 
-  // Calls the session clear tool and returns an empty response.
+  // Clears the authentication cookie and returns 204.
   @Post('logout')
   @HttpCode(204)
   async logout(@Res({ passthrough: true }) response: Response): Promise<void> {
     await this.sessions.clear(response);
   }
 
-  // Uses the identity supplied by the session tool to load the user.
+  // Loads the current user after JWT authentication.
   @Get('me')
-  async me(@Req() request: Request) {
-    const userId = await this.sessions.getCurrentUserId(request);
-    return this.authService.me(userId);
+  @UseGuards(JwtAuthGuard)
+  async me(@CurrentUser() user: { sub: string }) {
+    return this.authService.me(user.sub);
   }
 }
