@@ -224,13 +224,13 @@ export DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DATABASE_test'
 export TEST_DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DATABASE_test'
 ```
 
-Apply the committed Prisma migrations before running the database tests:
+Validate the dedicated test database configuration and apply the committed
+Prisma migrations before running the database tests:
 
 ```bash
-cd backend
 npm run prisma:validate
 npm run prisma:generate
-npm run prisma:migrate:deploy
+npm run test:db:prepare
 npm run test:db
 ```
 

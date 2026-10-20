@@ -90,8 +90,8 @@ jobs:
       - name: Generate Prisma Client
         run: npm run prisma:generate
 
-      - name: Apply database migrations
-        run: npm run prisma:migrate:deploy
+      - name: Prepare database integration tests
+        run: npm run test:db:prepare
 
       - name: Database integration tests
         run: npm run test:db
