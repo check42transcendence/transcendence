@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 
-function getTestDatabaseUrl(): string {
+export function getTestDatabaseUrl(): string {
   const connectionString = process.env.TEST_DATABASE_URL;
 
   if (!connectionString) {
@@ -50,9 +50,7 @@ export async function resetTestDatabase(): Promise<void> {
       )
       .join(', ');
 
-    await client.query(
-      `TRUNCATE TABLE ${tables} RESTART IDENTITY CASCADE`,
-    );
+    await client.query(`TRUNCATE TABLE ${tables} RESTART IDENTITY CASCADE`);
   } finally {
     client.release();
   }

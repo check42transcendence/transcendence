@@ -191,7 +191,7 @@ or inside the same development container.
 
 ## Validation
 
-Frontend:
+### Frontend:
 
 ```bash
 cd frontend
@@ -199,7 +199,7 @@ npm run lint
 npm run build
 ```
 
-Backend:
+### Backend:
 
 ```bash
 cd backend
@@ -212,7 +212,35 @@ npm test
 npm run test:e2e
 ```
 
-Containerized stack:
+### Database integration tests
+
+Database integration tests must use a dedicated PostgreSQL database whose
+name ends with `_test`.
+
+Set both database URLs to the dedicated test database:
+
+```bash
+export DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DATABASE_test'
+export TEST_DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DATABASE_test'
+```
+
+Apply the committed Prisma migrations before running the database tests:
+
+```bash
+cd backend
+npm run prisma:validate
+npm run prisma:generate
+npm run prisma:migrate:deploy
+npm run test:db
+```
+
+The database test helper refuses to run when `TEST_DATABASE_URL` points to
+a database whose name does not end with `_test`.
+
+Database tests may clear table data between tests, but they preserve the
+database schema and Prisma migration history.
+
+### Containerized stack:
 
 Generate the local certificate first using the setup instructions above.
 
