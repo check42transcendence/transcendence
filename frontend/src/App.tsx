@@ -1,12 +1,14 @@
 
 import { useState } from 'react'
+import { Navigate, Route, Routes, useNavigate } from 'react-router'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 
 function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [currentPage, setCurrentPage] = useState<'login' | 'register'>('login')
+  const navigate = useNavigate()
 
   async function handleLogin(credentials: {
     email: string
@@ -45,24 +47,40 @@ function App() {
     }
   }
 
-  return currentPage === 'login' ? (
-  <LoginPage
-    onSubmit={handleLogin}
-    loading={loading}
-    error={error}
-    onRegisterClick={() => setCurrentPage('register')}
-  />
-) : (
-  <RegisterPage
-    onSubmit={async (credentials) => {
-      console.log('Register form submitted:', {
-        email: credentials.email,
-        username: credentials.username,
-      })
-    }}
-    onLoginClick={() => setCurrentPage('login')}
-  />
-)
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/login" replace />} />
+
+      <Route
+        path="/login"
+        element={
+          <LoginPage
+            onSubmit={handleLogin}
+            loading={loading}
+            error={error}
+            onRegisterClick={() => navigate('/register')}
+          />
+        }
+      />
+
+      <Route
+        path="/register"
+        element={
+          <RegisterPage
+            onSubmit={async (credentials) => {
+              console.log('Register form submitted:', {
+                email: credentials.email,
+                username: credentials.username,
+              })
+            }}
+            onLoginClick={() => navigate('/login')}
+          />
+        }
+      />
+
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  )
 }
 
 export default App
