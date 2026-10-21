@@ -325,3 +325,259 @@ it('shows an error and stays signed in when logout fails', async () => {
 
     expect(button.hasAttribute('disabled')).toBe(false)
 })
+
+// Submits registration details and shows success.
+it('registers a user through the registration page', async () => {
+    render(
+        <MemoryRouter initialEntries={['/register']}>
+            <App />
+        </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', {
+        name: 'Create your account',
+    })
+
+    // Replaces fetch after the initial session check.
+    const fakeFetch = vi.fn().mockResolvedValue(
+        new Response(
+            JSON.stringify({
+                user: {
+                    id: 'test-user-id',
+                    email: 'test-user@example.com',
+                    username: 'test-user',
+                },
+            }),
+            {
+                status: 201,
+                headers: { 'Content-Type': 'application/json' },
+            },
+        ),
+    )
+
+    vi.stubGlobal('fetch', fakeFetch)
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: 'test-user@example.com' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Username'), {
+        target: { value: 'test-user' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Password'), {
+        target: { value: 'example-password' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Confirm password'), {
+        target: { value: 'example-password' },
+    })
+
+    fireEvent.click(
+        screen.getByRole('button', { name: 'Create account' }),
+    )
+
+    await screen.findByText('Account created. Please sign in.')
+
+    expect(fakeFetch).toHaveBeenCalledTimes(1)
+
+    expect(fakeFetch).toHaveBeenCalledWith('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            email: 'test-user@example.com',
+            username: 'test-user',
+            password: 'example-password',
+        }),
+    })
+})
+
+// Displays the backend error when registration fails.
+it('shows an error when the registration email already exists', async () => {
+    render(
+        <MemoryRouter initialEntries={['/register']}>
+            <App />
+        </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', {
+        name: 'Create your account',
+    })
+
+    const fakeFetch = vi.fn().mockResolvedValue(
+        new Response(
+            JSON.stringify({
+                error: {
+                    code: 'EMAIL_ALREADY_EXISTS',
+                    message: 'Email already exists',
+                    details: {},
+                },
+            }),
+            {
+                status: 409,
+                headers: { 'Content-Type': 'application/json' },
+            },
+        ),
+    )
+
+    vi.stubGlobal('fetch', fakeFetch)
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: 'test-user@example.com' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Username'), {
+        target: { value: 'test-user' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Password'), {
+        target: { value: 'example-password' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Confirm password'), {
+        target: { value: 'example-password' },
+    })
+
+    fireEvent.click(
+        screen.getByRole('button', { name: 'Create account' }),
+    )
+
+    const alert = await screen.findByRole('alert')
+
+    expect(alert.textContent).toBe('Email already exists')
+
+    expect(
+        screen.queryByText('Account created. Please sign in.'),
+    ).toBeNull()
+
+    expect(
+        screen.getByRole('button', { name: 'Create account' })
+            .hasAttribute('disabled'),
+    ).toBe(false)
+})
+
+// Signs in through the login page and opens home.
+it('logs in and navigates to home', async () => {
+    render(
+        <MemoryRouter initialEntries={['/login']}>
+            <App />
+            <CurrentPath />
+        </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', {
+        name: 'Welcome back',
+    })
+
+    const fakeFetch = vi.fn().mockResolvedValue(
+        new Response(
+            JSON.stringify({
+                user: {
+                    id: 'test-user-id',
+                    email: 'test-user@example.com',
+                    username: 'test-user',
+                },
+            }),
+            {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            },
+        ),
+    )
+
+    vi.stubGlobal('fetch', fakeFetch)
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: 'test-user@example.com' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Password'), {
+        target: { value: 'example-password' },
+    })
+
+    fireEvent.click(
+        screen.getByRole('button', { name: 'Sign in' }),
+    )
+
+    await screen.findByRole('heading', { name: 'Signed in' })
+
+    expect(screen.getByText('test-user')).not.toBeNull()
+
+    expect(
+        screen.getByLabelText('Current path').textContent,
+    ).toBe('/home')
+
+    expect(fakeFetch).toHaveBeenCalledTimes(1)
+
+    expect(fakeFetch).toHaveBeenCalledWith('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            email: 'test-user@example.com',
+            password: 'example-password',
+        }),
+    })
+})
+
+// Keeps the user on login when credentials are invalid.
+it('shows an error when login credentials are invalid', async () => {
+    render(
+        <MemoryRouter initialEntries={['/login']}>
+            <App />
+            <CurrentPath />
+        </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', {
+        name: 'Welcome back',
+    })
+
+    const fakeFetch = vi.fn().mockResolvedValue(
+        new Response(
+            JSON.stringify({
+                error: {
+                    code: 'INVALID_CREDENTIALS',
+                    message: 'Invalid email or password',
+                    details: {},
+                },
+            }),
+            {
+                status: 401,
+                headers: { 'Content-Type': 'application/json' },
+            },
+        ),
+    )
+
+    vi.stubGlobal('fetch', fakeFetch)
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: 'test-user@example.com' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Password'), {
+        target: { value: 'wrong-password' },
+    })
+
+    fireEvent.click(
+        screen.getByRole('button', { name: 'Sign in' }),
+    )
+
+    const alert = await screen.findByRole('alert')
+
+    expect(alert.textContent).toBe('Invalid email or password')
+
+    expect(
+        screen.getByLabelText('Current path').textContent,
+    ).toBe('/login')
+
+    expect(
+        screen.queryByRole('heading', { name: 'Signed in' }),
+    ).toBeNull()
+
+    expect(
+        screen.getByRole('button', { name: 'Sign in' })
+            .hasAttribute('disabled'),
+    ).toBe(false)
+})
