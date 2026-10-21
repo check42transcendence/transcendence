@@ -9,7 +9,7 @@ describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
-	process.env.JWT_SECRET = 'super-secret-test-key';
+    process.env.JWT_SECRET = 'super-secret-test-key';
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })

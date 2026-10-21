@@ -7,8 +7,7 @@ const SALT_ROUNDS = 10;
  * @param password The plain text password.
  * @returns The generated hash string.
  */
-export async function hash(password: string): Promise<string> 
-{
+export async function hash(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
 }
 
@@ -18,7 +17,9 @@ export async function hash(password: string): Promise<string>
  * @param hashString The hashed password stored in the database.
  * @returns True if passwords match, false otherwise.
  */
-export async function verify(password: string, hashString: string): Promise<boolean> 
-{
+export async function verify(
+  password: string,
+  hashString: string,
+): Promise<boolean> {
   return bcrypt.compare(password, hashString);
 }
