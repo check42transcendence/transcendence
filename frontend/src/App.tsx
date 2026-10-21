@@ -4,46 +4,57 @@ import { Navigate, Route, Routes, useNavigate } from 'react-router'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import {
+  register,
+  login,
+  type RegisterInput,
+  type LoginInput,
+} from './api/auth'
 
 function App() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [loginError, setLoginError] = useState('')
+  const [registerLoading, setRegisterLoading] = useState(false)
+  const [registerError, setRegisterError] = useState('')
+  const [registerSuccess, setRegisterSuccess] = useState('')
   const navigate = useNavigate()
 
-  async function handleLogin(credentials: {
-    email: string
-    password: string
-  }) {
-    setLoading(true)
-    setError('')
+  // Registers a user and displays the result.
+  async function handleRegister(input: RegisterInput): Promise<void> {
+    setRegisterLoading(true)
+    setRegisterError('')
+    setRegisterSuccess('')
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(credentials),
-      })
+      await register(input)
+      setRegisterSuccess('Account created. Please sign in.')
+    } catch (error) {
+      setRegisterError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to create an account. Please try again.',
+      )
+    } finally {
+      setRegisterLoading(false)
+    }
+  }
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => null)
-        throw new Error(
-          data?.error?.message ?? 'Unable to sign in. Please try again.',
-        )
-      }
+  // Logs in a user and opens the home page.
+  async function handleLogin(input: LoginInput) {
+    setLoginLoading(true)
+    setLoginError('')
 
+    try {
+      await login(input)
       window.location.assign('/home')
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
+    } catch (error) {
+      setLoginError(
+        error instanceof Error
+          ? error.message
           : 'Unable to sign in. Please try again.',
       )
-      throw err
     } finally {
-      setLoading(false)
+      setLoginLoading(false)
     }
   }
 
@@ -56,8 +67,8 @@ function App() {
         element={
           <LoginPage
             onSubmit={handleLogin}
-            loading={loading}
-            error={error}
+            loading={loginLoading}
+            error={loginError}
             onRegisterClick={() => navigate('/register')}
           />
         }
@@ -67,12 +78,10 @@ function App() {
         path="/register"
         element={
           <RegisterPage
-            onSubmit={async (credentials) => {
-              console.log('Register form submitted:', {
-                email: credentials.email,
-                username: credentials.username,
-              })
-            }}
+            onSubmit={handleRegister}
+            loading={registerLoading}
+            error={registerError}
+            success={registerSuccess}
             onLoginClick={() => navigate('/login')}
           />
         }

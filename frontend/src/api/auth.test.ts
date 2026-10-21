@@ -47,6 +47,7 @@ it('returns the user after successful registration', async () => {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify(registerInput),
+        credentials: 'same-origin'
     })
 })
 
@@ -116,6 +117,7 @@ it('returns the user after successful login', async () => {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify(loginInput),
+        credentials: 'same-origin'
     })
 })
 
@@ -164,7 +166,9 @@ it('returns the current user', async () => {
     const result = await getMe()
     expect(result).toEqual(expected)
     expect(fakeFetch).toHaveBeenCalledTimes(1)
-    expect(fakeFetch).toHaveBeenCalledWith('/api/auth/me')
+    expect(fakeFetch).toHaveBeenCalledWith('/api/auth/me', {
+        credentials: 'same-origin'
+    })
 })
 
 // Preserves the backend error when no user is authenticated.
@@ -204,6 +208,7 @@ it('logs out successfully with an empty response', async () => {
     expect(fakeFetch).toHaveBeenCalledTimes(1)
     expect(fakeFetch).toHaveBeenCalledWith('/api/auth/logout', {
         method: 'POST',
+        credentials: 'same-origin'
     })
 })
 
