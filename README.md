@@ -14,7 +14,7 @@ proposals, voting, and real-time collaboration.
 
 Currently implemented:
 
-- React/TypeScript frontend with Vite and a backend connectivity check.
+- React/TypeScript frontend with Vite, Auth pages, and protected routing.
 - Shared UI tokens and reusable Button, Input, and Card components using
   Tailwind CSS v4, Inter, and Lucide. See the [frontend guide](frontend/README.md)
   for component usage and styling conventions.
@@ -24,11 +24,14 @@ Currently implemented:
 - PostgreSQL with persistent storage and Prisma database integration.
 - Docker Compose stack with service health checks and a non-root backend.
 - Nginx gateway with local HTTPS and HTTP-to-HTTPS redirection.
-- GitHub Actions checks for the frontend, backend, Prisma, and container stack.
+- Playwright browser tests for the complete Auth flow in an isolated Docker stack.
+- GitHub Actions checks for the frontend, backend, Prisma, container stack,
+  and browser E2E tests.
 
-Auth backend integration is complete. Frontend authentication integration
-is still in progress. Registration does not log the user in; login sets a
-Secure, HttpOnly cookie. Logout clears the cookie without revoking issued JWTs.
+Auth connects the frontend, backend, and database. Registration does not
+log the user in; login sets a Secure, HttpOnly cookie. Logout clears the
+cookie without revoking issued JWTs.
+`/home` is a temporary Auth verification page, not the final travel workspace.
 
 Domain database models and migrations, travel features, and real-time
 collaboration are not implemented yet.
@@ -42,6 +45,8 @@ and publicly trusted certificates are not configured yet.
 - `backend/`: NestJS application, Prisma configuration and schema, and
   backend Dockerfile.
 - `compose.yml`: frontend, backend, and PostgreSQL services.
+- `e2e/`: Playwright tests, configuration, and test runner Dockerfile.
+- `compose.e2e.yml` and `.env.e2e.example`: isolated browser test environment.
 - `scripts/generate-local-cert.sh`: local TLS certificate generation.
 - `.env.example`: example local environment configuration.
 - `.nvmrc`: Node.js version used for development.
@@ -189,7 +194,8 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:5173` and click **Check backend**.
+Open `http://localhost:5173/login` for frontend development.
+Use the Compose HTTPS gateway to verify the full Auth flow.
 
 The local backend health endpoint is available at:
 
@@ -197,9 +203,8 @@ The local backend health endpoint is available at:
 http://localhost:3000/api/health
 ```
 
-The Vite development proxy targets `127.0.0.1:3000`. The frontend
-development server and backend must therefore run on the same host
-or inside the same development container.
+The Vite development proxy defaults to `http://127.0.0.1:3000`.
+Set `API_PROXY_TARGET` to use a backend reachable at another address.
 
 ## Validation
 
@@ -209,6 +214,7 @@ or inside the same development container.
 cd frontend
 npm run lint
 npm run build
+npm test
 ```
 
 ### Backend:
@@ -271,6 +277,12 @@ docker compose down
 Expect HTTP `308` with an HTTPS redirect, followed by HTTPS `200` and
 `{"status":"ok"}`. `--cacert` verifies the locally generated certificate.
 
+### Browser E2E tests
+
+Playwright verifies registration, login, session restoration, logout, and
+protected-route redirects using a separate test database. See the
+[E2E guide](e2e/README.md) for Docker commands, failure records, and cleanup.
+
 ## Continuous Integration
 
 GitHub Actions runs the following jobs for pull requests targeting
@@ -282,6 +294,8 @@ GitHub Actions runs the following jobs for pull requests targeting
   and end-to-end tests.
 - `Container checks`: temporary certificate generation, Compose validation,
   image builds, health checks, HTTP redirection, and HTTPS page/API checks.
+- `Browser E2E checks`: isolated test stack, automatic migrations, Chromium
+  Auth tests, failure trace upload, and test environment cleanup.
 
 ## Resources
 
