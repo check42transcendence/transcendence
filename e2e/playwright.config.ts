@@ -8,7 +8,7 @@ export default defineConfig({
   use: {
     browserName: 'chromium',
     trace: 'retain-on-failure',
-    baseURL: 'https://transcendence-e2e-frontend-1',
+    baseURL: process.env.E2E_BASE_URL ?? 'https://transcendence-e2e-frontend-1',
     ignoreHTTPSErrors: true,
   },
 })

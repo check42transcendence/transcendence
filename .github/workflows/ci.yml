@@ -183,3 +183,59 @@ jobs:
           docker compose
           --env-file .env.example
           down --volumes --remove-orphans
+
+  e2e:
+    name: Browser E2E checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - frontend
+      - backend
+
+    env:
+      COMPOSE_PROJECT_NAME: transcendence-e2e
+      COMPOSE_FILE: compose.e2e.yml
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Generate local TLS certificate
+        run: sh scripts/generate-local-cert.sh
+
+      - name: Validate E2E configuration
+        run: docker compose --env-file .env.e2e.example config --quiet
+
+      - name: Build and start test application
+        run: >
+          docker compose --env-file .env.e2e.example
+          up --build --detach --wait --wait-timeout 120
+          backend frontend
+
+      - name: Run browser tests
+        run: >
+          docker compose --env-file .env.e2e.example
+          run --build --rm --no-deps -T e2e
+
+      - name: Show service status
+        if: always()
+        run: docker compose --env-file .env.e2e.example ps --all
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose --env-file .env.e2e.example logs --no-color
+
+      - name: Upload failure records
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: auth-e2e-results
+          path: e2e/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Shut down test environment
+        if: always()
+        run: >
+          docker compose --env-file .env.e2e.example
+          down --volumes --remove-orphans

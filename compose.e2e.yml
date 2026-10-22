@@ -90,5 +90,20 @@ services:
       retries: 5
       start_period: 5s
 
+  e2e:
+    build:
+      context: ./e2e
+    init: true
+    profiles:
+      - test
+    shm_size: 1gb
+    volumes:
+      - ./e2e/test-results:/tests/test-results
+    environment:
+      E2E_BASE_URL: https://frontend
+    depends_on:
+      frontend:
+        condition: service_healthy
+
 volumes:
   postgres_data:
