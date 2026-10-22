@@ -36,8 +36,7 @@ function duplicateError(index: string) {
     meta: {
       driverAdapterError: {
         cause: {
-          originalMessage:
-            `duplicate key value violates unique constraint "${index}"`,
+          originalMessage: `duplicate key value violates unique constraint "${index}"`,
         },
       },
     },
@@ -68,28 +67,25 @@ describe('UsersRepository', () => {
   it('findByEmail: returns null when missing', async () => {
     findFirst.mockResolvedValue(null);
 
-    await expect(users.findByEmail('missing@example.com'))
-      .resolves.toBeNull();
+    await expect(users.findByEmail('missing@example.com')).resolves.toBeNull();
   });
 
   it('findByEmail: escapes LIKE wildcard characters', async () => {
-  findFirst.mockResolvedValue(testUser);
+    findFirst.mockResolvedValue(testUser);
 
-  const result = await users.findByEmail(
-    '  A_B%C\\D@example.com  ',
-  );
+    const result = await users.findByEmail('  A_B%C\\D@example.com  ');
 
-  expect(result).toEqual(testUser);
+    expect(result).toEqual(testUser);
 
-  expect(findFirst).toHaveBeenCalledWith({
-    where: {
-      email: {
-        equals: 'A\\_B\\%C\\\\D@example.com',
-        mode: 'insensitive',
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        email: {
+          equals: 'A\\_B\\%C\\\\D@example.com',
+          mode: 'insensitive',
+        },
       },
-    },
+    });
   });
-});
 
   it('findById: queries the exact ID', async () => {
     findUnique.mockResolvedValue(testUser);
@@ -118,24 +114,22 @@ describe('UsersRepository', () => {
     });
   });
 
-it('findByUsername: escapes LIKE wildcard characters', async () => {
-  findFirst.mockResolvedValue(testUser);
+  it('findByUsername: escapes LIKE wildcard characters', async () => {
+    findFirst.mockResolvedValue(testUser);
 
-  const result = await users.findByUsername(
-    '  A_B%C\\D  ',
-  );
+    const result = await users.findByUsername('  A_B%C\\D  ');
 
-  expect(result).toEqual(testUser);
+    expect(result).toEqual(testUser);
 
-  expect(findFirst).toHaveBeenCalledWith({
-    where: {
-      username: {
-        equals: 'A\\_B\\%C\\\\D',
-        mode: 'insensitive',
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        username: {
+          equals: 'A\\_B\\%C\\\\D',
+          mode: 'insensitive',
+        },
       },
-    },
+    });
   });
-});
 
   it('create: trims fields and returns created user', async () => {
     create.mockResolvedValue(testUser);
@@ -153,9 +147,7 @@ it('findByUsername: escapes LIKE wildcard characters', async () => {
   });
 
   it('create: recognizes duplicate email', async () => {
-    create.mockRejectedValue(
-      duplicateError('user_email_ci_unique'),
-    );
+    create.mockRejectedValue(duplicateError('user_email_ci_unique'));
 
     await expect(users.create(input)).rejects.toMatchObject({
       name: 'AuthUserConflictError',
@@ -164,9 +156,7 @@ it('findByUsername: escapes LIKE wildcard characters', async () => {
   });
 
   it('create: recognizes duplicate username', async () => {
-    create.mockRejectedValue(
-      duplicateError('user_username_ci_unique'),
-    );
+    create.mockRejectedValue(duplicateError('user_username_ci_unique'));
 
     await expect(users.create(input)).rejects.toMatchObject({
       name: 'AuthUserConflictError',
