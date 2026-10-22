@@ -1,50 +1,145 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate } from 'react-router'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import {
+  register,
+  login,
+  getMe,
+  logout,
+  type RegisterInput,
+  type LoginInput,
+  type CurrentUser,
+} from './api/auth'
+import { ApiError } from './shared/api/api-error'
 
 function App() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [loginError, setLoginError] = useState('')
+
+  const [registerLoading, setRegisterLoading] = useState(false)
+  const [registerError, setRegisterError] = useState('')
+  const [registerSuccess, setRegisterSuccess] = useState('')
+
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+
+  const [checkingSession, setCheckingSession] = useState(true)
+  const [sessionError, setSessionError] = useState('')
+
+  const [logoutLoading, setLogoutLoading] = useState(false)
+  const [logoutError, setLogoutError] = useState('')
+
   const navigate = useNavigate()
 
-  async function handleLogin(credentials: {
-    email: string
-    password: string
-  }) {
-    setLoading(true)
-    setError('')
+  // Restores the current user when the app starts.
+  useEffect(() => {
+    let active = true
+
+    async function loadCurrentUser(): Promise<void> {
+      try {
+        const result = await getMe()
+
+        if (active) {
+          setCurrentUser(result.user)
+        }
+      } catch (error) {
+        if (!active) return
+
+        if (error instanceof ApiError && error.status === 401) {
+          setCurrentUser(null)
+        } else {
+          setSessionError('Unable to check your session. Please try again.')
+        }
+      } finally {
+        if (active) {
+          setCheckingSession(false)
+        }
+      }
+    }
+
+    void loadCurrentUser()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  // Registers a user and displays the result.
+  async function handleRegister(input: RegisterInput): Promise<void> {
+    setRegisterLoading(true)
+    setRegisterError('')
+    setRegisterSuccess('')
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(credentials),
-      })
+      await register(input)
+      setRegisterSuccess('Account created. Please sign in.')
+    } catch (error) {
+      setRegisterError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to create an account. Please try again.',
+      )
+    } finally {
+      setRegisterLoading(false)
+    }
+  }
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => null)
-        throw new Error(
-          data?.error?.message ?? 'Unable to sign in. Please try again.',
-        )
-      }
+  // Logs in a user and opens the home page.
+  async function handleLogin(input: LoginInput) {
+    setLoginLoading(true)
+    setLoginError('')
 
-      window.location.assign('/home')
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
+    try {
+      const result = await login(input)
+      setCurrentUser(result.user)
+      navigate('/home', { replace: true })
+    } catch (error) {
+      setLoginError(
+        error instanceof Error
+          ? error.message
           : 'Unable to sign in. Please try again.',
       )
-      throw err
     } finally {
-      setLoading(false)
+      setLoginLoading(false)
     }
+  }
+
+  // Clears the session and returns to login.
+  async function handleLogout(): Promise<void> {
+    setLogoutLoading(true)
+    setLogoutError('')
+
+    try {
+      await logout()
+      setCurrentUser(null)
+      setLoginError('')
+      navigate('/login', { replace: true })
+    } catch (error) {
+      setLogoutError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to sign out. Please try again.',
+      )
+    } finally {
+      setLogoutLoading(false)
+    }
+  }
+
+  if (checkingSession) {
+    return <p role="status">Checking session...</p>
+  }
+
+  if (sessionError) {
+    return (
+      <main>
+        <p role="alert">{sessionError}</p>
+        <button type="button" onClick={() => window.location.reload()}>
+          Retry
+        </button>
+      </main>
+    )
   }
 
   return (
@@ -56,8 +151,8 @@ function App() {
         element={
           <LoginPage
             onSubmit={handleLogin}
-            loading={loading}
-            error={error}
+            loading={loginLoading}
+            error={loginError}
             onRegisterClick={() => navigate('/register')}
           />
         }
@@ -67,14 +162,38 @@ function App() {
         path="/register"
         element={
           <RegisterPage
-            onSubmit={async (credentials) => {
-              console.log('Register form submitted:', {
-                email: credentials.email,
-                username: credentials.username,
-              })
-            }}
+            onSubmit={handleRegister}
+            loading={registerLoading}
+            error={registerError}
+            success={registerSuccess}
             onLoginClick={() => navigate('/login')}
           />
+        }
+      />
+
+      <Route
+        path="/home"
+        element={
+          currentUser ? (
+            <main>
+              <h1>Signed in</h1>
+              <p>{currentUser.username}</p>
+
+              {logoutError && (
+                <p role="alert">{logoutError}</p>
+              )}
+
+              <button
+                type="button"
+                disabled={logoutLoading}
+                onClick={handleLogout}
+              >
+                {logoutLoading ? 'Signing out...' : 'Sign out'}
+              </button>
+            </main>
+          ) : (
+            <Navigate to="/login" replace />
+          )
         }
       />
 

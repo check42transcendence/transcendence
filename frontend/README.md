@@ -13,9 +13,11 @@ npm run dev
 ```
 
 Open `http://localhost:5173`. Vite updates the page when source files change.
-The `/api` proxy targets `127.0.0.1:3000`; the backend must be reachable
-from the same environment. UI styling can be developed without a backend.
-For the full Docker/HTTPS setup, see the [project README](../README.md).
+The `/api` proxy defaults to `http://127.0.0.1:3000`; set `API_PROXY_TARGET`
+to use another backend address. The running app checks the session on startup
+and requires a reachable backend.
+For real Auth testing, use the Docker/HTTPS setup in the
+[project README](../README.md), as authentication cookies are Secure.
 
 Before submitting changes:
 
@@ -31,11 +33,27 @@ npm run build
 
 - `/` redirects to `/login`.
 - `/login` and `/register` show the Auth pages.
+- `/home` is a temporary Auth verification page showing the current user
+  and a sign-out button. Unauthenticated users are redirected to `/login`.
 - Unknown paths show the not-found page.
 
 Use React Router navigation instead of local state to switch pages.
-Run `npm test` for API and routing tests. Routing tests use jsdom
-and do not require a backend.
+
+## Authentication
+
+`src/api/auth.ts` provides `register`, `login`, `getMe`, and `logout` using
+the shared API client. `App.tsx` manages user state, loading, errors, and navigation.
+
+- Registration shows a success message; it does not log the user in.
+- Login saves the returned user in React state and opens `/home`.
+- On startup or refresh, `getMe()` restores the user from the backend session.
+  A `401` means unauthenticated; other failures show an error with a retry button.
+- Logout clears the backend cookie and local user state, then returns to `/login`.
+  If logout fails, the current user is preserved and an error is shown.
+
+`npm test` runs API and page tests with mocked requests; no backend is required.
+Browser end-to-end tests are tracked separately in
+[#52](https://github.com/check42transcendence/transcendence/issues/52).
 
 ## Shared API Client
 
