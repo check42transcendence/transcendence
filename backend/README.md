@@ -77,3 +77,8 @@ npm run test:db
 
 Database integration tests may clear test data. See the
 [project README](../README.md#validation) for environment and validation details.
+
+Browser E2E tests use a separate Docker stack and test database. Its migration
+service runs `test:db:prepare` before the backend starts; development Compose
+still requires migrations to be applied manually. See the
+[E2E guide](../e2e/README.md) for commands and cleanup.

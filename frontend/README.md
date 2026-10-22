@@ -52,8 +52,8 @@ the shared API client. `App.tsx` manages user state, loading, errors, and naviga
   If logout fails, the current user is preserved and an error is shown.
 
 `npm test` runs API and page tests with mocked requests; no backend is required.
-Browser end-to-end tests are tracked separately in
-[#52](https://github.com/check42transcendence/transcendence/issues/52).
+Playwright tests verify the real Auth flow using a separate Docker stack
+and database. See the [E2E guide](../e2e/README.md) for running them.
 
 ## Shared API Client
 
