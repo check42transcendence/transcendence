@@ -74,6 +74,30 @@ error messages, and navigation.
 
 Run `npm test` to check the client with mocked requests; no backend is required.
 
+## Translation Keys
+
+Keep frontend UI text in `src/shared/i18n/en.ts` and read it with `t()`.
+English is the only current language; language switching is not included.
+
+```tsx
+import { t } from '../shared/i18n/translation'
+
+<h1>{t('auth.login.title')}</h1>
+```
+
+Adjust the import path for your file. Add new keys under the matching comment
+in `en.ts`:
+
+- `app.*`: product name and tagline.
+- `common.*`: messages shared across the application.
+- `auth.shared.*`: labels and actions shared by Auth pages.
+- `auth.login.*` / `auth.register.*`: page-specific messages.
+- `auth.session.*` / `auth.logout.*`: session and logout messages.
+- `notFound.*`: not-found page messages.
+
+Follow the same pattern for new features. Reuse keys when their meaning is the
+same. Backend error messages and the default HTTP error remain in English.
+
 ## Shared UI Components
 
 Components live in `src/components/ui/` and accept their native HTML
