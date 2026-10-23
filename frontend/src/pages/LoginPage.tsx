@@ -1,5 +1,7 @@
 /*import  modules*/ 
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
+import { PageContainer } from '../components/layout/PageContainer'
+import { AuthHeader } from '../components/layout/AuthHeader'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
@@ -29,7 +31,7 @@ export function LoginPage({
   const [validationError, setValidationError] = useState('')
 
   /* handle form submit*/
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     setValidationError('')
 
@@ -51,13 +53,8 @@ export function LoginPage({
   }
 
   return (
-    <main className="mx-auto max-w-[440px] px-4 py-12">
-      <header className="mb-6 text-center">
-        <h1 className="text-page-title">{t('app.name')}</h1>
-        <p className="text-muted mt-2">
-          {t('app.tagline')}
-        </p>
-      </header>
+    <PageContainer>
+      <AuthHeader />
 
       <Card className="space-y-5">
         <div>
@@ -130,6 +127,6 @@ export function LoginPage({
           </button>
         </p>
       </Card>
-    </main>
+    </PageContainer>
   )
 }
