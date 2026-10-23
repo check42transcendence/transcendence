@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
+import { t } from '../shared/i18n/translation'
 
 /* define props types*/
 type LoginPageProps = {
@@ -35,7 +36,7 @@ export function LoginPage({
     const normalizedEmail = email.trim()
 
     if (!normalizedEmail || !password) {
-      setValidationError('Please enter your email and password.')
+      setValidationError(t('auth.login.validation.required'))
       return
     }
 
@@ -52,29 +53,29 @@ export function LoginPage({
   return (
     <main className="mx-auto max-w-[440px] px-4 py-12">
       <header className="mb-6 text-center">
-        <h1 className="text-page-title">Travel Planner</h1>
+        <h1 className="text-page-title">{t('app.name')}</h1>
         <p className="text-muted mt-2">
-          Plan your next trip together.
+          {t('app.tagline')}
         </p>
       </header>
 
       <Card className="space-y-5">
         <div>
           <h2 className="text-card-title font-medium">
-            Welcome back
+            {t('auth.login.title')}
           </h2>
           <p className="text-muted mt-1">
-            Sign in to continue to your trips.
+            {t('auth.login.description')}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            label="Email"
+            label={t('auth.shared.fields.email')}
             name="email"
             type="email"
             autoComplete="email"
-            placeholder="you@example.com"
+            placeholder={t('auth.shared.placeholders.email')}
             required
             maxLength={254}
             value={email}
@@ -86,11 +87,11 @@ export function LoginPage({
           />
 
           <Input
-            label="Password"
+            label={t('auth.shared.fields.password')}
             name="password"
             type="password"
             autoComplete="current-password"
-            placeholder="Enter your password"
+            placeholder={t('auth.login.placeholders.password')}
             required
             value={password}
             disabled={loading}
@@ -113,19 +114,19 @@ export function LoginPage({
             isLoading={loading}
             disabled={loading}
           >
-            Sign in
+            {t('auth.shared.actions.signIn')}
           </Button>
         </form>
 
         <p className="text-small text-muted text-center">
-          Don't have an account?{' '}
+          {t('auth.login.noAccount')}{' '}
           <button
             type="button"
             onClick={onRegisterClick}
             disabled={loading}
             className="font-medium text-brand underline"
           >
-            Create account
+            {t('auth.shared.actions.createAccount')}
           </button>
         </p>
       </Card>

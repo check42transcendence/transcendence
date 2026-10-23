@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
+import { t } from '../shared/i18n/translation'
 
 type RegisterCredentials = {
   email: string
@@ -39,12 +40,12 @@ export function RegisterPage({
     const normalizedUsername = username.trim()
 
     if (!normalizedEmail || !normalizedUsername || !password || !confirmPassword) {
-      setValidationError('Please complete all fields.')
+      setValidationError(t('auth.register.validation.required'))
       return
     }
 
     if (password !== confirmPassword) {
-      setValidationError('Passwords do not match.')
+      setValidationError(t('auth.register.validation.passwordMismatch'))
       return
     }
 
@@ -62,29 +63,29 @@ export function RegisterPage({
   return (
     <main className="mx-auto max-w-[440px] px-4 py-12">
       <header className="mb-6 text-center">
-        <h1 className="text-page-title">Travel Planner</h1>
+        <h1 className="text-page-title">{t('app.name')}</h1>
         <p className="text-muted mt-2">
-          Plan your next trip together.
+          {t('app.tagline')}
         </p>
       </header>
 
       <Card className="space-y-5">
         <div>
           <h2 className="text-card-title font-medium">
-            Create your account
+            {t('auth.register.title')}
           </h2>
           <p className="text-muted mt-1">
-            Sign up to start planning trips with friends.
+            {t('auth.register.description')}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            label="Email"
+            label={t('auth.shared.fields.email')}
             name="email"
             type="email"
             autoComplete="email"
-            placeholder="you@example.com"
+            placeholder={t('auth.shared.placeholders.email')}
             required
             maxLength={254}
             value={email}
@@ -96,11 +97,11 @@ export function RegisterPage({
           />
 
           <Input
-            label="Username"
+            label={t('auth.register.fields.username')}
             name="username"
             type="text"
             autoComplete="username"
-            placeholder="Choose a username"
+            placeholder={t('auth.register.placeholders.username')}
             required
             value={username}
             disabled={loading}
@@ -111,11 +112,11 @@ export function RegisterPage({
           />
 
           <Input
-            label="Password"
+            label={t('auth.shared.fields.password')}
             name="password"
             type="password"
             autoComplete="new-password"
-            placeholder="Create a password"
+            placeholder={t('auth.register.placeholders.password')}
             required
             value={password}
             disabled={loading}
@@ -126,11 +127,11 @@ export function RegisterPage({
           />
 
           <Input
-            label="Confirm password"
+            label={t('auth.register.fields.confirmPassword')}
             name="confirmPassword"
             type="password"
             autoComplete="new-password"
-            placeholder="Enter your password again"
+            placeholder={t('auth.register.placeholders.confirmPassword')}
             required
             value={confirmPassword}
             disabled={loading}
@@ -158,23 +159,22 @@ export function RegisterPage({
             isLoading={loading}
             disabled={loading}
           >
-            Create account
+            {t('auth.shared.actions.createAccount')}
           </Button>
         </form>
 
         <p className="text-small text-muted text-center">
-          Already have an account?{' '}
+          {t('auth.register.hasAccount')}{' '}
           <button
             type="button"
             onClick={onLoginClick}
             disabled={loading}
             className="font-medium text-brand underline"
           >
-            Sign in
+            {t('auth.shared.actions.signIn')}
           </button>
         </p>
       </Card>
     </main>
   )
 }
-
