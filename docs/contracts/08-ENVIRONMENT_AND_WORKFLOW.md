@@ -46,13 +46,15 @@ Socket.IO: /socket.io
 
 ## 3. Compose Services
 
-Exactly:
+The application baseline in `compose.yml` has exactly these services:
 
 ```text
 frontend
 backend
 postgres
 ```
+
+The isolated browser-test stack in `compose.e2e.yml` additionally defines `migration` and `e2e` test services. This separate Compose file does not change the three-service application baseline.
 
 Cross-container communication uses service DNS names, not `localhost`.
 
@@ -267,7 +269,7 @@ Code existing on a feature branch is not Done.
 
 ## 15. Current CI
 
-Runs on:
+The GitHub Actions workflow is defined in `.github/workflows/ci.yml` and runs on:
 
 ```text
 pull_request → main
@@ -276,23 +278,32 @@ push → main
 
 ### Frontend checks
 
+Run from `frontend/`:
+
 ```text
 npm ci
 npm run lint
 npm run build
+npm test
 ```
 
 ### Backend checks
+
+Run from `backend/` with a dedicated PostgreSQL test service and CI-only database credentials:
 
 ```text
 npm ci
 npm run prisma:validate
 npm run prisma:generate
+npm run test:db:prepare
+npm run test:db
 npm run lint
 npm run build
 npm test
 npm run test:e2e
 ```
+
+`test:db:prepare` prepares the isolated test database and applies committed Prisma migrations. `test:db` runs PostgreSQL-backed integration tests. `test:e2e` runs backend HTTP E2E tests; it is separate from browser E2E testing.
 
 ### Container checks
 
@@ -308,7 +319,23 @@ frontend over HTTPS with certificate verification
 /api/health through the HTTPS Nginx gateway with certificate verification
 ```
 
-Container job follows successful frontend/backend checks.
+The Container checks job runs after successful Frontend and Backend checks.
+
+### Browser E2E checks
+
+A separate GitHub Actions job runs Playwright tests against the real frontend, backend, and PostgreSQL using:
+
+```text
+compose.e2e.yml
+.env.e2e.example
+e2e/
+```
+
+The isolated test stack starts PostgreSQL, runs migrations through its `migration` service, starts the backend and HTTPS frontend, and then executes the Playwright Chromium test runner. The current browser E2E coverage includes the Auth registration, login, session restoration, logout, and protected-route redirect flow.
+
+On failure, CI uploads browser test failure records. The test containers and their database volume are cleaned up after the job.
+
+The Browser E2E checks job, like Container checks, depends on successful Frontend and Backend checks. The isolated browser-test stack does not replace or add services to the application baseline in `compose.yml`.
 
 ## 16. CI Growth
 
