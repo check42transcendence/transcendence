@@ -50,6 +50,25 @@ After pulling schema changes, regenerate Prisma Client. Apply any new committed
 migrations before using the updated backend. Generated files in
 `src/generated/` are ignored by Git.
 
+
+## Testing strategy
+
+Use the test type that matches the behavior being verified.
+
+| Test type | Location | Command | Purpose |
+| --- | --- | --- | --- |
+| Backend unit tests | `backend/src/**/*.spec.ts` (from the repository root) | `cd backend && npm test` | Test individual backend components, with dependencies mocked where appropriate. |
+| Backend HTTP E2E tests | `backend/test/**/*.e2e-spec.ts` (from the repository root) | `cd backend && npm run test:e2e` | Test backend behavior through HTTP requests using the NestJS test application. Set `DATABASE_URL` to a dedicated database whose name ends with `_test`. |
+| Database integration tests | `backend/test/database/**/*.db-spec.ts` | `cd backend && npm run test:db:prepare && npm run test:db` | Test database behavior against PostgreSQL. `TEST_DATABASE_URL` must point to a dedicated database whose name ends with `_test`. |
+| Browser Auth E2E tests | `e2e/tests/auth.spec.ts` | Follow the Docker workflow in [`e2e/README.md`](../e2e/README.md) | Test registration, login, session restoration, logout, and protected-route redirects in a real browser against the isolated E2E environment. |
+
+### Test classification notes
+
+- Unit tests should focus on individual components and avoid unnecessary external dependencies.
+- Database integration tests verify behavior against a real PostgreSQL database. Keep them isolated from the development database.
+- `backend/test/users.repository.e2e-spec.ts` currently matches the backend E2E Vitest configuration, but its main purpose is to verify PostgreSQL repository behavior. Treat it as a database integration test when deciding where similar future tests belong. It is not necessary to move the file just to change its name.
+- Browser E2E tests use the separate Docker environment described in [`e2e/README.md`](../e2e/README.md). Do not use the development database for these tests.
+
 ## Checks
 
 With `DATABASE_URL` and `JWT_SECRET` set:
