@@ -98,6 +98,28 @@ in `en.ts`:
 Follow the same pattern for new features. Reuse keys when their meaning is the
 same. Backend error messages and the default HTTP error remain in English.
 
+## Shared Layout
+
+Layout components live in `src/components/layout/`:
+
+- `PageContainer`: a centered `<main>` with a 440px maximum width and shared
+  padding, used by the Auth and not-found pages. Use `className` for extra spacing.
+- `AuthHeader`: the product name and tagline shared by login and registration.
+
+Example from a page in `src/pages/`:
+
+```tsx
+import { PageContainer } from '../components/layout/PageContainer'
+import { AuthHeader } from '../components/layout/AuthHeader'
+
+<PageContainer className="space-y-4">
+  <AuthHeader />
+  {/* Page content goes here. */}
+</PageContainer>
+```
+
+`PageContainer` already provides `<main>`; do not nest another `<main>` inside it.
+
 ## Shared UI Components
 
 Components live in `src/components/ui/` and accept their native HTML
