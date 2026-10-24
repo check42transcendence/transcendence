@@ -46,6 +46,16 @@ export function RegisterPage({
       return
     }
 
+    if (Array.from(password).length < 8) {
+      setValidationError(t('auth.shared.validation.passwordTooShort'))
+      return
+    }
+
+    if (new TextEncoder().encode(password).length > 72) {
+      setValidationError(t('auth.shared.validation.passwordTooLong'))
+      return
+    }
+
     if (password !== confirmPassword) {
       setValidationError(t('auth.register.validation.passwordMismatch'))
       return
@@ -100,6 +110,7 @@ export function RegisterPage({
             autoComplete="username"
             placeholder={t('auth.register.placeholders.username')}
             required
+            maxLength={50}
             value={username}
             disabled={loading}
             onChange={(event) => {

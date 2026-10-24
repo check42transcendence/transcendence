@@ -6,7 +6,7 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
   PayloadTooLargeException,
-UnsupportedMediaTypeException,
+  UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
 import type { HttpAdapterHost } from '@nestjs/core';

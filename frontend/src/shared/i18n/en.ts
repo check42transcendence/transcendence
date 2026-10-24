@@ -14,6 +14,8 @@ export const en = {
     'auth.shared.placeholders.email': 'you@example.com',
     'auth.shared.actions.signIn': 'Sign in',
     'auth.shared.actions.createAccount': 'Create account',
+    'auth.shared.validation.passwordTooShort': 'Password must contain at least 8 characters.',
+    'auth.shared.validation.passwordTooLong': 'Password must not exceed 72 UTF-8 bytes.',
 
     // Login page text, validation, and fallback error.
     'auth.login.title': 'Welcome back',

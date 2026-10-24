@@ -1,5 +1,12 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+  MinLength,
+  IsByteLength,
+} from 'class-validator';
 
 // Validates login input; only the email is trimmed.
 export class LoginDto {
@@ -12,5 +19,7 @@ export class LoginDto {
 
   @IsString()
   @IsNotEmpty()
+  @MinLength(8)
+  @IsByteLength(0, 72)
   password!: string;
 }

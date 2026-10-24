@@ -84,6 +84,16 @@ P0 uses `400`, not a custom `422`, for request validation.
 
 ## 3. Authentication
 
+### Input validation
+
+- Email: trim surrounding whitespace, require a valid email format, maximum 254 characters.
+- Registration username: trim surrounding whitespace, require a non-empty value, maximum 50 characters.
+- Registration and login passwords: minimum 8 Unicode code points, maximum 72 UTF-8 bytes.
+- Passwords may contain Unicode and whitespace; do not trim or truncate them.
+- Invalid input returns `400 VALIDATION_ERROR`. Valid input with incorrect login credentials returns `401 INVALID_CREDENTIALS`.
+
+Development accounts with passwords outside these limits must be recreated.
+
 ### POST /api/auth/register
 
 Request:
