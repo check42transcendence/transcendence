@@ -2,7 +2,7 @@
 
 **Issue:** [#42 — Document & Validate Backend Feature Foundation](https://github.com/check42transcendence/transcendence/issues/42)  
 **Audience:** Backend developers and Vertical Slice Owners  
-**Status:** Proposed for PR review; use after [#41 / PR #68](https://github.com/check42transcendence/transcendence/pull/68) has been merged into `main`.
+**Status:** Draft for #42 PR review; #41 / PR #68 has been merged into `main`.
 
 ## 1. Before You Start
 
@@ -21,7 +21,7 @@ Read the relevant contracts before writing code:
 - [Shared types](../contracts/07-SHARED_TYPES.md) — canonical request/response shapes.
 - [Environment & workflow](../contracts/08-ENVIRONMENT_AND_WORKFLOW.md) — Git, Compose and CI rules.
 
-**Prerequisite:** #41 adds application-wide `ValidationPipe`, `HttpExceptionFilter`, `ApiExpressAdapter`, and the default-private `JwtAuthGuard` / `@Public()` pattern. This guide describes the **post-#41** architecture. Do not merge this document ahead of #41, or claim that those components already exist on a branch that does not contain #41. A documentation branch created from pre-#41 `main` will need to integrate updated `main` after the #41 PR is merged.
+**Prerequisite:** Issue #41 (PR #68) has been merged into `main`. It provides the global `ValidationPipe`, `HttpExceptionFilter`, `ApiExpressAdapter`, and default-private `JwtAuthGuard` with `@Public()`. Integrate the latest `origin/main` into your feature branch before following this guide.
 
 ## 2. Start from the Current Main Branch
 
@@ -383,11 +383,13 @@ The global `HttpExceptionFilter` preserves already formatted domain/Auth errors.
 | Generic forbidden action | `403 ACCESS_DENIED` |
 | Generic unknown route/resource | `404 NOT_FOUND` |
 | Generic state conflict | `409 STATE_CONFLICT` |
+| Oversized JSON request | `413 PAYLOAD_TOO_LARGE` |
+| Other unclassified client errors | Original `4xx` status with `CLIENT_ERROR` |
 | Unexpected server failure | `500 INTERNAL_ERROR` (safe body) |
 
 Do not replace specific codes such as `TRIP_OWNER_REQUIRED`, `ACTIVITY_NOT_FOUND`, `ACTIVITY_VERSION_CONFLICT` or `PROPOSAL_MAJORITY_LOST` with generic codes. Do not invent an `422` response or expose passwords, secrets, SQL, stack traces or raw Prisma errors. Frontend logic must switch on `error.code`, not human-readable `message`.
 
-`ApiExpressAdapter` handles malformed JSON *before* normal DTO validation. Feature owners should neither recreate JSON parsing nor catch every exception just to reformat it. All HTTP `500+` exceptions are sanitized by the shared Filter.
+ApiExpressAdapter handles malformed JSON and oversized request bodies before normal DTO validation. Feature owners should neither recreate JSON parsing nor catch every exception just to reformat it. All HTTP `500+` exceptions are sanitized by the shared Filter.
 
 ## 8. Database Schema, Migrations and Transactions
 
@@ -439,7 +441,7 @@ Use these existing real examples:
 - `backend/src/auth/auth.service.spec.ts`: success and failure paths.
 - `backend/src/users/users.repository.spec.ts`: Repository unit tests.
 - `backend/test/global-auth.integration.spec.ts`: global JWT Guard behavior through HTTP.
-- `backend/test/http-exception.integration.spec.ts`: 400/401/403/404/409/500 behavior through HTTP.
+- `backend/test/http-exception.integration.spec.ts`: 400/401/403/404/409/413/415/500 behavior through HTTP, including safe error bodies.
 - `e2e/tests/auth.spec.ts`: browser registration → login → refresh → logout.
 - `e2e/tests/validation.spec.ts`: Playwright API validation checks added by #41.
 
@@ -552,13 +554,15 @@ Before requesting a merge, verify:
 
 ## 13. #42 Final Foundation Validation Record
 
-This section is a **checklist for the #42 PR**, not an assertion that work has already run. Fill in actual output and GitHub run URLs **after #41 is merged** and the final documentation changes are tested. Also recheck [feature-conventions.md](feature-conventions.md) for any historic wording that still calls #41 infrastructure "not implemented"; once #41 is merged, update that stale implementation-status prose in the #42 docs PR without changing frozen business rules. PR #68 now includes `ACCESS_DENIED`, `NOT_FOUND` and `STATE_CONFLICT` in both the REST contract and the `ApiErrorCode` union in [Shared Types](../contracts/07-SHARED_TYPES.md). Confirm that both files reach `main` together with #41; do not modify frozen contracts silently in this docs issue.
+This section records the final validation for Issue #42. Issue #41 (PR #68) has been merged into `main`, including the shared validation, authentication guard, and HTTP error handling infrastructure. The REST contract and Shared Types include `ACCESS_DENIED`, `NOT_FOUND`, `STATE_CONFLICT`, `PAYLOAD_TOO_LARGE`, and `CLIENT_ERROR`.
+
+Verify the documentation against the merged implementation and record the actual #42 test results and CI evidence below.
 
 | Check | Evidence / result |
 | --- | --- |
-| #41 merged into `main` | **Pending verification** — confirm PR #68 is merged |
+| #41 merged into `main` | **Complete** — PR #68 merged on 2026-10-24 |
 | Guide reviewed against merged Auth, Prisma and shared HTTP files | Not yet recorded |
-| REST error-code list agrees with frozen `ApiErrorCode` union | Aligned on PR #68 branch; reverify after its merge |
+| REST error-code list agrees with frozen `ApiErrorCode` union | Confirmed in merged #41 / PR #68 |
 | `npm run lint` | Not yet run for #42 |
 | `npm run build` | Not yet run for #42 |
 | `npm test` | Not yet run for #42 |
