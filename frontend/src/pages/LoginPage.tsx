@@ -42,6 +42,16 @@ export function LoginPage({
       return
     }
 
+    if (Array.from(password).length < 8) {
+      setValidationError(t('auth.shared.validation.passwordTooShort'))
+      return
+    }
+
+    if (new TextEncoder().encode(password).length > 72) {
+      setValidationError(t('auth.shared.validation.passwordTooLong'))
+      return
+    }
+
     try {
       await onSubmit({
         email: normalizedEmail,

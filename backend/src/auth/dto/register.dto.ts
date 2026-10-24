@@ -1,5 +1,12 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+  MinLength,
+  IsByteLength,
+} from 'class-validator';
 
 // Validates registration fields and trims email and username.
 export class RegisterDto {
@@ -21,5 +28,7 @@ export class RegisterDto {
   // Keeps the password unchanged, including whitespace.
   @IsString()
   @IsNotEmpty()
+  @MinLength(8)
+  @IsByteLength(0, 72)
   password!: string;
 }

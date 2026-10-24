@@ -645,3 +645,67 @@ it('shows an error when login credentials are invalid', async () => {
             .hasAttribute('disabled'),
     ).toBe(false)
 })
+
+// Shows a validation error without sending a login request.
+it('blocks login when the password is too short', async () => {
+    render(
+        <MemoryRouter initialEntries={['/login']}>
+            <App />
+        </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Welcome back' })
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: 'alice@example.com' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Password'), {
+        target: { value: '1234567' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(screen.getByRole('alert').textContent).toBe(
+        'Password must contain at least 8 characters.',
+    )
+    expect(fetch).toHaveBeenCalledTimes(1)
+})
+
+// Shows a validation error without sending a registration request.
+it('blocks registration when the password exceeds 72 UTF-8 bytes', async () => {
+    render(
+        <MemoryRouter initialEntries={['/register']}>
+            <App />
+        </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Create your account' })
+
+    const password = '中'.repeat(24) + 'a'
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: 'alice@example.com' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Username'), {
+        target: { value: 'alice' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Password', { exact: true }), {
+        target: { value: password },
+    })
+
+    fireEvent.change(screen.getByLabelText('Confirm password'), {
+        target: { value: password },
+    })
+
+    fireEvent.click(
+        screen.getByRole('button', { name: 'Create account' }),
+    )
+
+    expect(screen.getByRole('alert').textContent).toBe(
+        'Password must not exceed 72 UTF-8 bytes.',
+    )
+    expect(fetch).toHaveBeenCalledTimes(1)
+})
