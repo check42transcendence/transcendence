@@ -457,6 +457,70 @@ it('shows an error when the registration email already exists', async () => {
     ).toBe(false)
 })
 
+// Displays the backend error when the registration username already exists.
+it('shows an error when the registration username already exists', async () => {
+    render(
+        <MemoryRouter initialEntries={['/register']}>
+            <App />
+        </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', {
+        name: 'Create your account',
+    })
+
+    const fakeFetch = vi.fn().mockResolvedValue(
+        new Response(
+            JSON.stringify({
+                error: {
+                    code: 'USERNAME_ALREADY_EXISTS',
+                    message: 'Username already exists',
+                    details: {},
+                },
+            }),
+            {
+                status: 409,
+                headers: { 'Content-Type': 'application/json' },
+            },
+        ),
+    )
+
+    vi.stubGlobal('fetch', fakeFetch)
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: 'another-user@example.com' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Username'), {
+        target: { value: 'existing-user' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Password'), {
+        target: { value: 'example-password' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Confirm password'), {
+        target: { value: 'example-password' },
+    })
+
+    fireEvent.click(
+        screen.getByRole('button', { name: 'Create account' }),
+    )
+
+    const alert = await screen.findByRole('alert')
+
+    expect(alert.textContent).toBe('Username already exists')
+
+    expect(
+        screen.queryByText('Account created. Please sign in.'),
+    ).toBeNull()
+
+    expect(
+        screen.getByRole('button', { name: 'Create account' })
+            .hasAttribute('disabled'),
+    ).toBe(false)
+})
+
 // Signs in through the login page and opens home.
 it('logs in and navigates to home', async () => {
     render(
@@ -580,4 +644,68 @@ it('shows an error when login credentials are invalid', async () => {
         screen.getByRole('button', { name: 'Sign in' })
             .hasAttribute('disabled'),
     ).toBe(false)
+})
+
+// Shows a validation error without sending a login request.
+it('blocks login when the password is too short', async () => {
+    render(
+        <MemoryRouter initialEntries={['/login']}>
+            <App />
+        </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Welcome back' })
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: 'alice@example.com' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Password'), {
+        target: { value: '1234567' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(screen.getByRole('alert').textContent).toBe(
+        'Password must contain at least 8 characters.',
+    )
+    expect(fetch).toHaveBeenCalledTimes(1)
+})
+
+// Shows a validation error without sending a registration request.
+it('blocks registration when the password exceeds 72 UTF-8 bytes', async () => {
+    render(
+        <MemoryRouter initialEntries={['/register']}>
+            <App />
+        </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Create your account' })
+
+    const password = '中'.repeat(24) + 'a'
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: 'alice@example.com' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Username'), {
+        target: { value: 'alice' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Password', { exact: true }), {
+        target: { value: password },
+    })
+
+    fireEvent.change(screen.getByLabelText('Confirm password'), {
+        target: { value: password },
+    })
+
+    fireEvent.click(
+        screen.getByRole('button', { name: 'Create account' }),
+    )
+
+    expect(screen.getByRole('alert').textContent).toBe(
+        'Password must not exceed 72 UTF-8 bytes.',
+    )
+    expect(fetch).toHaveBeenCalledTimes(1)
 })
