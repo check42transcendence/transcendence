@@ -8,6 +8,7 @@ import {
   Post,
   Param,
   ParseUUIDPipe,
+  UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -81,6 +82,12 @@ class ErrorProbeController {
   acceptJson(): { ok: boolean } {
     return { ok: true };
   }
+
+  @Get('unsupported-media-type')
+  unsupportedMediaType(): never {
+    throw new UnsupportedMediaTypeException();
+  }
+
   @Get('generic-conflict')
   genericConflict(): never {
     throw new ConflictException();
@@ -159,6 +166,28 @@ describe('Global HTTP exception filter (real HTTP requests)', () => {
 
     expect(response.body).toEqual(
       errorBody('MALFORMED_REQUEST', 'Malformed request'),
+    );
+  });
+
+  it('returns 413 for an oversized JSON request', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/__filter_test__/json')
+      .set('Content-Type', 'application/json')
+      .send({ data: 'x'.repeat(200_000) })
+      .expect(413);
+
+    expect(response.body).toEqual(
+      errorBody('PAYLOAD_TOO_LARGE', 'Request body too large'),
+    );
+  });
+
+  it('preserves an unclassified HTTP 415 status', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/__filter_test__/unsupported-media-type')
+      .expect(415);
+
+    expect(response.body).toEqual(
+      errorBody('CLIENT_ERROR', 'Client request error'),
     );
   });
 

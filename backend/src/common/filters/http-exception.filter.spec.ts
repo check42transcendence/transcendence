@@ -5,6 +5,8 @@ import {
   NotFoundException,
   InternalServerErrorException,
   UnauthorizedException,
+  PayloadTooLargeException,
+UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
 import type { HttpAdapterHost } from '@nestjs/core';
@@ -56,6 +58,30 @@ describe('HttpExceptionFilter', () => {
       response,
       errorBody('ACCESS_DENIED', 'Access denied'),
       403,
+    );
+  });
+
+  it('preserves an unclassified 413 status', () => {
+    const { filter, reply } = createFilter();
+
+    filter.catch(new PayloadTooLargeException(), host);
+
+    expect(reply).toHaveBeenCalledWith(
+      response,
+      errorBody('CLIENT_ERROR', 'Client request error'),
+      413,
+    );
+  });
+
+  it('preserves an unclassified 415 status', () => {
+    const { filter, reply } = createFilter();
+
+    filter.catch(new UnsupportedMediaTypeException(), host);
+
+    expect(reply).toHaveBeenCalledWith(
+      response,
+      errorBody('CLIENT_ERROR', 'Client request error'),
+      415,
     );
   });
 

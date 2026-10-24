@@ -119,8 +119,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
             status,
           );
           return;
+
         default:
-          // Unexpected statuses must not expose raw framework responses.
+          // Preserve recognized client-error status codes.
+          // Never expose raw framework error messages.
+          if (status >= 400 && status < 500) {
+            httpAdapter.reply(
+              response,
+              makeError('CLIENT_ERROR', 'Client request error'),
+              status,
+            );
+            return;
+          }
+
           this.replyInternalError(response);
           return;
       }

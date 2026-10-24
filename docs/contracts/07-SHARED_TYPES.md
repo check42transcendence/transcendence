@@ -331,6 +331,8 @@ type ApiErrorCode =
   | 'ACCESS_DENIED'
   | 'NOT_FOUND'
   | 'STATE_CONFLICT'
+  | 'PAYLOAD_TOO_LARGE'
+  | 'CLIENT_ERROR'
 ```
 
 ## 14. Realtime Base / Event Types

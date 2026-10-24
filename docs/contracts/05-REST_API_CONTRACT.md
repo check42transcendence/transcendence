@@ -525,6 +525,8 @@ INTERNAL_ERROR
 ACCESS_DENIED
 NOT_FOUND
 STATE_CONFLICT
+PAYLOAD_TOO_LARGE
+CLIENT_ERROR
 ```
 
 ### 15.1 Generic HTTP fallback codes
@@ -643,6 +645,18 @@ by this clarification.
 Regression tests must cover the three new fallbacks as well as preservation of
 existing `401`, domain `403/404`, `409`, validation/malformed input and safe
 `500` responses. This contract clarification and its regression tests are included in Issue #41.
+
+### Recognized client errors
+
+Known client-side HTTP errors must preserve their original status codes.
+
+- `413 PAYLOAD_TOO_LARGE`: an oversized request body rejected by the Express parser.
+- Other recognized but unclassified `4xx` errors use `CLIENT_ERROR` with the original HTTP status.
+
+All responses use the canonical error envelope with safe messages and `details: {}`.
+
+These fallback rules do not replace domain-specific error codes.
+Unknown internal failures and server-side exceptions use `500 INTERNAL_ERROR`.
 
 ## 16. Realtime Relationship
 

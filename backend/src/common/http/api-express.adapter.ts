@@ -1,7 +1,11 @@
-import { BadRequestException } from '@nestjs/common';
+
+import {
+  BadRequestException,
+  PayloadTooLargeException,
+} from '@nestjs/common';
 import { ExpressAdapter } from '@nestjs/platform-express';
 
-// Preserve malformed JSON errors before Nest normalizes them.
+// Preserve known Express body-parser errors before Nest normalizes them.
 export class ApiExpressAdapter extends ExpressAdapter {
   override mapException(error: unknown): unknown {
     if (
@@ -15,6 +19,23 @@ export class ApiExpressAdapter extends ExpressAdapter {
         error: {
           code: 'MALFORMED_REQUEST',
           message: 'Malformed request',
+          details: {},
+        },
+      });
+    }
+
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'status' in error &&
+      error.status === 413 &&
+      'type' in error &&
+      error.type === 'entity.too.large'
+    ) {
+      return new PayloadTooLargeException({
+        error: {
+          code: 'PAYLOAD_TOO_LARGE',
+          message: 'Request body too large',
           details: {},
         },
       });
