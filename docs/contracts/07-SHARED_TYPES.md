@@ -328,6 +328,9 @@ type ApiErrorCode =
   | 'VALIDATION_ERROR'
   | 'MALFORMED_REQUEST'
   | 'INTERNAL_ERROR'
+  | 'ACCESS_DENIED'
+  | 'NOT_FOUND'
+  | 'STATE_CONFLICT'
 ```
 
 ## 14. Realtime Base / Event Types
