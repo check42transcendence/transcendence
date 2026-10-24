@@ -64,7 +64,10 @@ export function Textarea({
 
     return (
         <div className={fieldLayoutStyles}>
-            <label htmlFor={textareaId} className={labelStyles}>
+            <label
+                htmlFor={textareaId}
+                className={labelStyles}
+            >
                 {label}
             </label>
 

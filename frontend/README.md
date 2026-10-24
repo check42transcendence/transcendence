@@ -129,6 +129,8 @@ attributes plus the props below.
 | --- | --- |
 | `Button` | `variant`: `primary` (default), `secondary`, or `danger`; `isLoading` disables interaction and shows a centered spinner while preserving button dimensions and its accessible name. `disabled` uses the shared disabled colors. Defaults to `type="button"`. |
 | `Input` | Required `label`, optional `error`; supports `value`/`onChange`, `disabled`, and `readOnly`. Associates labels and error messages with the input. |
+| `Textarea` | Required `label`, optional `error`; defaults to 4 rows and disables manual resizing. Supports `value`/`onChange`, `disabled`, and `readOnly`, with labels and errors associated with the control. |
+| `Select` | Required `label`, optional `error`; accepts native `<option>` children, `value`/`onChange`, and `disabled`. Uses the browser's dropdown and keyboard behavior; no `readOnly` support. |
 | `Card` | A non-interactive container with shared padding, border, radius, and shadow. Place content and action controls inside it. |
 
 ```tsx
@@ -167,6 +169,29 @@ decorative icons. Icon-only buttons need an accessible name (`aria-label`).
 
 Input hover keeps the default white background; focus and errors provide
 feedback. Card has no built-in hover effect or whole-card click action.
+
+### Form control examples
+
+Import `Textarea` and `Select` from `src/components/ui/`:
+
+```tsx
+<Textarea label="Description" name="description" maxLength={500} />
+
+<Select label="Transport" name="transport" defaultValue="" required>
+  <option value="" disabled>Choose transport</option>
+  <option value="train">Train</option>
+  <option value="bus">Bus</option>
+</Select>
+```
+
+The disabled initial option acts as a muted prompt. Pages supply validation
+messages through `error`; components do not perform business validation.
+
+### Local UI preview
+
+Run `npm run dev` and open `http://localhost:5173/ui.html` to preview components
+without a backend or session check. Edit `src/dev/UiPreview.tsx` to add examples.
+This is a Vite development entry; the current production build uses `index.html`.
 
 ## Styling
 

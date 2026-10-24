@@ -3,6 +3,7 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Textarea } from '../components/ui/Textarea'
+import { Select } from '../components/ui/Select'
 
 // Previews shared UI components without authentication or API requests.
 export function UiPreview() {
@@ -13,9 +14,14 @@ export function UiPreview() {
             <h1 className="text-page-title">UI Preview</h1>
 
             <Card className="space-y-4">
-                <Input label="Example input" placeholder="Enter text" />
+                <Input
+                    label="Example input"
+                    placeholder="Enter text"
+                />
 
-                <Button>Example button</Button>
+                <Button>
+                    Example button
+                </Button>
 
                 <Textarea
                     label="Controlled description"
@@ -28,26 +34,24 @@ export function UiPreview() {
 
                 <p>Current value: {description}</p>
 
-                <Textarea
-                    label="Description with error"
-                    defaultValue="Example description"
-                    error="Please provide more details."
-                    rows={2}
-                />
+                <Select
+                    label="Transport"
+                    defaultValue=""
+                >
+                    <option value="" disabled>Choose transport</option>
+                    <option value="train">Train</option>
+                    <option value="bus">Bus</option>
+                </Select>
 
-                <Textarea
-                    label="Disabled description"
-                    defaultValue="This field is disabled."
-                    disabled
-                    rows={2}
-                />
-
-                <Textarea
-                    label="Read-only description"
-                    defaultValue="You can read and copy this text."
-                    readOnly
-                    rows={2}
-                />
+                <Select
+                    label="Transport with error"
+                    defaultValue=""
+                    error="Please choose a transport option."
+                >
+                    <option value="" disabled>Choose transport</option>
+                    <option value="train">Train</option>
+                    <option value="bus">Bus</option>
+                </Select>
             </Card>
         </main>
     )
