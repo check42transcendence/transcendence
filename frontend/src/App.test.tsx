@@ -457,6 +457,70 @@ it('shows an error when the registration email already exists', async () => {
     ).toBe(false)
 })
 
+// Displays the backend error when the registration username already exists.
+it('shows an error when the registration username already exists', async () => {
+    render(
+        <MemoryRouter initialEntries={['/register']}>
+            <App />
+        </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', {
+        name: 'Create your account',
+    })
+
+    const fakeFetch = vi.fn().mockResolvedValue(
+        new Response(
+            JSON.stringify({
+                error: {
+                    code: 'USERNAME_ALREADY_EXISTS',
+                    message: 'Username already exists',
+                    details: {},
+                },
+            }),
+            {
+                status: 409,
+                headers: { 'Content-Type': 'application/json' },
+            },
+        ),
+    )
+
+    vi.stubGlobal('fetch', fakeFetch)
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: 'another-user@example.com' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Username'), {
+        target: { value: 'existing-user' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Password'), {
+        target: { value: 'example-password' },
+    })
+
+    fireEvent.change(screen.getByLabelText('Confirm password'), {
+        target: { value: 'example-password' },
+    })
+
+    fireEvent.click(
+        screen.getByRole('button', { name: 'Create account' }),
+    )
+
+    const alert = await screen.findByRole('alert')
+
+    expect(alert.textContent).toBe('Username already exists')
+
+    expect(
+        screen.queryByText('Account created. Please sign in.'),
+    ).toBeNull()
+
+    expect(
+        screen.getByRole('button', { name: 'Create account' })
+            .hasAttribute('disabled'),
+    ).toBe(false)
+})
+
 // Signs in through the login page and opens home.
 it('logs in and navigates to home', async () => {
     render(
