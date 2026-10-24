@@ -1,4 +1,3 @@
-/*import  modules*/ 
 import { useState, type SubmitEvent } from 'react'
 import { PageContainer } from '../components/layout/PageContainer'
 import { AuthHeader } from '../components/layout/AuthHeader'
@@ -7,30 +6,30 @@ import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { t } from '../shared/i18n/translation'
 
-/* define props types*/
+type LoginCredentials = {
+  email: string
+  password: string
+}
+
 type LoginPageProps = {
-  onSubmit: (credentials: {
-    email: string
-    password: string
-  }) => Promise<void>
+  onSubmit: (credentials: LoginCredentials) => Promise<void>
   loading?: boolean
   error?: string
   onRegisterClick: () => void
 }
 
-/* creat LoginPage component*/
+// Displays the login form and validates input before submission.
 export function LoginPage({
   onSubmit,
   loading = false,
   error,
   onRegisterClick,
 }: LoginPageProps) {
-  /* save the state from user input*/
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [validationError, setValidationError] = useState('')
 
-  /* handle form submit*/
+  // Validates input before calling the parent submit handler.
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     setValidationError('')
@@ -52,14 +51,11 @@ export function LoginPage({
       return
     }
 
-    try {
-      await onSubmit({
-        email: normalizedEmail,
-        password,
-      })
-    } catch {
-      // The parent component is responsible for displaying API errors.
-    }
+    // The parent handles API errors, loading state, and navigation.
+    await onSubmit({
+      email: normalizedEmail,
+      password,
+    })
   }
 
   return (
@@ -113,7 +109,6 @@ export function LoginPage({
               {validationError || error}
             </p>
           )}
-
 
           <Button
             type="submit"
