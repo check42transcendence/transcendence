@@ -642,7 +642,7 @@ by this clarification.
 
 Regression tests must cover the three new fallbacks as well as preservation of
 existing `401`, domain `403/404`, `409`, validation/malformed input and safe
-`500` responses. This is a contract clarification; This contract clarification and its regression tests are included in Issue #41.
+`500` responses. This contract clarification and its regression tests are included in Issue #41.
 
 ## 16. Realtime Relationship
 
