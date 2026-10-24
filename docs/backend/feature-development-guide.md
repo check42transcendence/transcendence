@@ -2,7 +2,7 @@
 
 **Issue:** [#42 — Document & Validate Backend Feature Foundation](https://github.com/check42transcendence/transcendence/issues/42)  
 **Audience:** Backend developers and Vertical Slice Owners  
-**Status:** Draft for #42 PR review; #41 / PR #68 has been merged into `main`.
+**Status:** Complete — backend guide reviewed and CI-validated in PR #74; awaiting final PR approval and merge.
 
 ## 1. Before You Start
 
@@ -558,20 +558,23 @@ This section records the final validation for Issue #42. Issue #41 (PR #68) has 
 
 Verify the documentation against the merged implementation and record the actual #42 test results and CI evidence below.
 
+
 | Check | Evidence / result |
 | --- | --- |
 | #41 merged into `main` | **Complete** — PR #68 merged on 2026-10-24 |
-| Guide reviewed against merged Auth, Prisma and shared HTTP files | Not yet recorded |
-| REST error-code list agrees with frozen `ApiErrorCode` union | Confirmed in merged #41 / PR #68 |
-| `npm run lint` | Not yet run for #42 |
-| `npm run build` | Not yet run for #42 |
-| `npm test` | Not yet run for #42 |
-| `npm run test:e2e` on `_test` database | Not yet run for #42 |
-| `npm run test:db` on dedicated `_test` DB | Not yet run for #42 |
-| Required GitHub Actions checks | Not yet checked for #42 PR |
-| Non-author review | Not yet requested |
+| Guide reviewed against merged Auth, Prisma and shared HTTP files | **Complete** — checked against the merged Auth implementation, global validation/filter, Prisma User schema and contracts |
+| REST error-code list agrees with frozen `ApiErrorCode` union | **Passed** — including `PAYLOAD_TOO_LARGE` and `CLIENT_ERROR` |
+| `npm run lint` | **Passed in CI** — Backend checks |
+| `npm run build` | **Passed in CI** — Backend checks |
+| `npm test` | **Passed in CI** — Backend checks |
+| `npm run test:e2e` on `_test` database | **Passed in CI** — using `transcendence_test` |
+| `npm run test:db` on dedicated `_test` DB | **Passed in CI** — using `transcendence_test` |
+| Required GitHub Actions checks | **Passed (4/4)** — Frontend, Backend, Container, Browser E2E |
+| CI evidence | [PR #74 CI run #40115375695](https://github.com/check42transcendence/transcendence/actions/runs/40115375695), successful on commit `b732a31` |
+| Non-author review | **Pending** — approval required before merge |
 
-Do not copy the #41 result **57/57 backend tests** into this record as if it were a new #42 run. Confirm results for the actual revision being merged.
+
+The recorded CI results belong to PR #74 at commit `b732a31`. This documentation-only update will trigger a new CI run; verify that the latest PR checks also pass before merging.
 
 ---
 
