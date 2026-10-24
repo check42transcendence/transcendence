@@ -14,6 +14,7 @@ import {
   type CurrentUser,
 } from './api/auth'
 import { ApiError } from './shared/api/api-error'
+import { t } from './shared/i18n/translation'
 
 function App() {
   const [loginLoading, setLoginLoading] = useState(false)
@@ -50,7 +51,7 @@ function App() {
         if (error instanceof ApiError && error.status === 401) {
           setCurrentUser(null)
         } else {
-          setSessionError('Unable to check your session. Please try again.')
+          setSessionError(t('auth.session.error'))
         }
       } finally {
         if (active) {
@@ -74,12 +75,12 @@ function App() {
 
     try {
       await register(input)
-      setRegisterSuccess('Account created. Please sign in.')
+      setRegisterSuccess(t('auth.register.success'))
     } catch (error) {
       setRegisterError(
         error instanceof Error
           ? error.message
-          : 'Unable to create an account. Please try again.',
+          : t('auth.register.error'),
       )
     } finally {
       setRegisterLoading(false)
@@ -99,7 +100,7 @@ function App() {
       setLoginError(
         error instanceof Error
           ? error.message
-          : 'Unable to sign in. Please try again.',
+          : t('auth.login.error'),
       )
     } finally {
       setLoginLoading(false)
@@ -120,7 +121,7 @@ function App() {
       setLogoutError(
         error instanceof Error
           ? error.message
-          : 'Unable to sign out. Please try again.',
+          : t('auth.logout.error'),
       )
     } finally {
       setLogoutLoading(false)
@@ -128,7 +129,7 @@ function App() {
   }
 
   if (checkingSession) {
-    return <p role="status">Checking session...</p>
+    return <p role="status">{t('auth.session.checking')}</p>
   }
 
   if (sessionError) {
@@ -136,7 +137,7 @@ function App() {
       <main>
         <p role="alert">{sessionError}</p>
         <button type="button" onClick={() => window.location.reload()}>
-          Retry
+          {t('common.actions.retry')}
         </button>
       </main>
     )
@@ -176,7 +177,7 @@ function App() {
         element={
           currentUser ? (
             <main>
-              <h1>Signed in</h1>
+              <h1>{t('auth.session.signedIn')}</h1>
               <p>{currentUser.username}</p>
 
               {logoutError && (
@@ -188,7 +189,9 @@ function App() {
                 disabled={logoutLoading}
                 onClick={handleLogout}
               >
-                {logoutLoading ? 'Signing out...' : 'Sign out'}
+                {logoutLoading
+                  ? t('auth.logout.pending')
+                  : t('auth.logout.action')}
               </button>
             </main>
           ) : (

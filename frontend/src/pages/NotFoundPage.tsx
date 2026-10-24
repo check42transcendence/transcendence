@@ -1,14 +1,16 @@
 import { Link } from "react-router";
+import { PageContainer } from "../components/layout/PageContainer";
+import { t } from '../shared/i18n/translation'
 
 // Shows a fallback page for unknown URLs.
 export function NotFoundPage() {
     return (
-        <main className="mx-auto max-w-[440px] space-y-4 px-4 py-12">
-            <h1 className="text-page-title">Page not found</h1>
-            <p>The page you requested does not exist.</p>
+        <PageContainer className="space-y-4">
+            <h1 className="text-page-title">{t('notFound.title')}</h1>
+            <p>{t('notFound.description')}</p>
             <Link className="tc-focus text-brand underline" to="/login">
-                Go to login
+                {t('notFound.actions.goToLogin')}
             </Link>
-        </main>
+        </PageContainer>
     )
 }

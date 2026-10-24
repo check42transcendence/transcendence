@@ -1,28 +1,8 @@
 import { spawnSync } from 'node:child_process';
+import { assertTestDatabaseUrl } from './test-database-url.mjs';
 
-const connectionString = process.env.TEST_DATABASE_URL;
-
-if (!connectionString) {
-  throw new Error('TEST_DATABASE_URL is not defined');
-}
-
-const url = new URL(connectionString);
-const databaseName = decodeURIComponent(
-  url.pathname.replace(/^\/+/, ''),
-);
-
-if (!databaseName) {
-  throw new Error(
-    'TEST_DATABASE_URL does not include a database name',
-  );
-}
-
-if (!databaseName.endsWith('_test')) {
-  throw new Error(
-    `Refusing to prepare database "${databaseName}". ` +
-      'The test database name must end with "_test".',
-  );
-}
+const { connectionString, databaseName } =
+  assertTestDatabaseUrl('TEST_DATABASE_URL');
 
 console.log(
   `Preparing dedicated test database "${databaseName}".`,
