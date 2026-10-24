@@ -1,4 +1,3 @@
-
 import { useState, type SubmitEvent } from 'react'
 import { PageContainer } from '../components/layout/PageContainer'
 import { AuthHeader } from '../components/layout/AuthHeader'
@@ -21,6 +20,7 @@ type RegisterPageProps = {
   onLoginClick: () => void
 }
 
+// Displays the registration form and validates input before submission.
 export function RegisterPage({
   onSubmit,
   loading = false,
@@ -34,6 +34,7 @@ export function RegisterPage({
   const [confirmPassword, setConfirmPassword] = useState('')
   const [validationError, setValidationError] = useState('')
 
+  // Validates input before calling the parent submit handler.
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     setValidationError('')
@@ -61,15 +62,12 @@ export function RegisterPage({
       return
     }
 
-    try {
-      await onSubmit({
-        email: normalizedEmail,
-        username: normalizedUsername,
-        password,
-      })
-    } catch {
-      // The parent component displays API errors.
-    }
+    // The parent handles API errors, loading state, and success messages.
+    await onSubmit({
+      email: normalizedEmail,
+      username: normalizedUsername,
+      password,
+    })
   }
 
   return (
