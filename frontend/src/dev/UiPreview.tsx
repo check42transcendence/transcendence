@@ -4,6 +4,8 @@ import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Textarea } from '../components/ui/Textarea'
 import { Select } from '../components/ui/Select'
+import { Badge } from '../components/ui/Badge'
+import { EmptyState } from '../components/ui/EmptyState'
 
 // Previews shared UI components without authentication or API requests.
 export function UiPreview() {
@@ -43,15 +45,21 @@ export function UiPreview() {
                     <option value="bus">Bus</option>
                 </Select>
 
-                <Select
-                    label="Transport with error"
-                    defaultValue=""
-                    error="Please choose a transport option."
-                >
-                    <option value="" disabled>Choose transport</option>
-                    <option value="train">Train</option>
-                    <option value="bus">Bus</option>
-                </Select>
+                <div className="flex flex-wrap gap-2">
+                    <Badge>Neutral</Badge>
+                    <Badge variant="success">Success</Badge>
+                    <Badge variant="warning">Warning</Badge>
+                    <Badge variant="danger">Danger</Badge>
+                    <Badge variant="info">Info</Badge>
+                </div>
+
+                <Card>
+                    <EmptyState
+                        title="No trips yet"
+                        description="Create your first trip to get started."
+                        action={<Button>Create trip (Example Button)</Button>}
+                    />
+                </Card>
             </Card>
         </main>
     )
