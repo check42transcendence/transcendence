@@ -122,8 +122,9 @@ import { AuthHeader } from '../components/layout/AuthHeader'
 
 ## Shared UI Components
 
-Components live in `src/components/ui/` and accept their native HTML
-attributes plus the props below.
+Components live in `src/components/ui/`. Button, Input, Textarea, Select,
+Card, and Badge accept native HTML attributes. EmptyState, Modal, Tabs,
+and Toast use the explicit props below.
 
 | Component | Props and behavior |
 | --- | --- |
@@ -132,6 +133,11 @@ attributes plus the props below.
 | `Textarea` | Required `label`, optional `error`; defaults to 4 rows and disables manual resizing. Supports `value`/`onChange`, `disabled`, and `readOnly`, with labels and errors associated with the control. |
 | `Select` | Required `label`, optional `error`; accepts native `<option>` children, `value`/`onChange`, and `disabled`. Uses the browser's dropdown and keyboard behavior; no `readOnly` support. |
 | `Card` | A non-interactive container with shared padding, border, radius, and shadow. Place content and action controls inside it. |
+| `Badge` | Non-interactive label. `variant`: `neutral` (default), `success`, `warning`, `danger`, or `info`. Pass the label as children; pages choose the variant. |
+| `EmptyState` | Required `title`; optional `description`, `action` (React content), and `className`. Displays a centered empty-content message. |
+| `Modal` | `open`, `onClose`, `title`, and `children`; optional `footer`. Uses a native dialog with a close button and Escape support. |
+| `Tabs` | `label`, `items`, `value`, and `onValueChange`. Each item has `value`, `label`, and `content`. Supports mouse selection and left/right arrow keys. |
+| `Toast` | `open`, `message`, and `onClose`; optional `variant`: `info` (default), `success`, `warning`, or `danger`. Optional `autoCloseMs` enables timed dismissal; omitted or `0` means manual close. |
 
 ```tsx
 import { useState } from 'react'
@@ -186,6 +192,35 @@ Import `Textarea` and `Select` from `src/components/ui/`:
 
 The disabled initial option acts as a muted prompt. Pages supply validation
 messages through `error`; components do not perform business validation.
+
+### Display component examples
+
+Import `Badge` and `EmptyState` from `src/components/ui/`:
+
+```tsx
+<Badge variant="success">Accepted</Badge>
+
+<EmptyState
+  title="No trips yet"
+  description="Create your first trip to get started."
+  action={<Button onClick={handleCreateTrip}>Create trip</Button>}
+/>
+```
+
+Pages provide translated text, choose status variants, and implement actions
+such as `handleCreateTrip`. These components do not fetch data or run business logic.
+
+### Interactive components
+
+Pages own Modal and Toast visibility and the selected Tabs value. An `onClose`
+handler should set the matching `open` state to `false`.
+
+- Modal uses the browser's modal focus behavior. Clicking the backdrop does not close it.
+- Tabs items need unique values; the selected `value` must match an item.
+- Keep Toast mounted and change its `open` prop so its announcement region remains
+  available. One Toast shows one message; it does not queue notifications.
+  `autoCloseMs={5000}` closes it after five seconds. Changing the message restarts
+  the timer. Leave important messages open for manual dismissal.
 
 ### Local UI preview
 

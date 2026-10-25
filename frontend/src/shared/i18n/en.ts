@@ -7,6 +7,7 @@ export const en = {
 
     // Common messages that any page can reuse.
     'common.actions.retry': 'Retry',
+    'common.actions.close': 'Close',
 
     // Labels, placeholders, and actions shared by authentication pages.
     'auth.shared.fields.email': 'Email',

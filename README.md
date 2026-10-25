@@ -15,7 +15,7 @@ proposals, voting, and real-time collaboration.
 Currently implemented:
 
 - React/TypeScript frontend with Vite, Auth pages, and protected routing.
-- Shared UI tokens and reusable Button, Input, and Card components using
+- Shared UI tokens and reusable form controls, cards, modals, tabs, and notifications using
   Tailwind CSS v4, Inter, and Lucide. See the [frontend guide](frontend/README.md)
   for component usage and styling conventions.
 - NestJS backend with a `GET /api/health` endpoint.
