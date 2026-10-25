@@ -122,8 +122,8 @@ import { AuthHeader } from '../components/layout/AuthHeader'
 
 ## Shared UI Components
 
-Components live in `src/components/ui/` and accept their native HTML
-attributes plus the props below.
+Components live in `src/components/ui/`. Basic controls accept native HTML
+attributes; Modal, Tabs, and Toast use the explicit props below.
 
 | Component | Props and behavior |
 | --- | --- |
@@ -132,6 +132,9 @@ attributes plus the props below.
 | `Textarea` | Required `label`, optional `error`; defaults to 4 rows and disables manual resizing. Supports `value`/`onChange`, `disabled`, and `readOnly`, with labels and errors associated with the control. |
 | `Select` | Required `label`, optional `error`; accepts native `<option>` children, `value`/`onChange`, and `disabled`. Uses the browser's dropdown and keyboard behavior; no `readOnly` support. |
 | `Card` | A non-interactive container with shared padding, border, radius, and shadow. Place content and action controls inside it. |
+| `Modal` | `open`, `onClose`, `title`, and `children`; optional `footer`. Uses a native dialog with a close button and Escape support. |
+| `Tabs` | `label`, `items`, `value`, and `onValueChange`. Each item has `value`, `label`, and `content`. Supports mouse selection and left/right arrow keys. |
+| `Toast` | `open`, `message`, and `onClose`; optional `variant`: `info` (default), `success`, `warning`, or `danger`. Optional `autoCloseMs` enables timed dismissal; omitted or `0` means manual close. |
 
 ```tsx
 import { useState } from 'react'
@@ -186,6 +189,18 @@ Import `Textarea` and `Select` from `src/components/ui/`:
 
 The disabled initial option acts as a muted prompt. Pages supply validation
 messages through `error`; components do not perform business validation.
+
+### Interactive components
+
+Pages own Modal and Toast visibility and the selected Tabs value. An `onClose`
+handler should set the matching `open` state to `false`.
+
+- Modal uses the browser's modal focus behavior. Clicking the backdrop does not close it.
+- Tabs items need unique values; the selected `value` must match an item.
+- Keep Toast mounted and change its `open` prop so its announcement region remains
+  available. One Toast shows one message; it does not queue notifications.
+  `autoCloseMs={5000}` closes it after five seconds. Changing the message restarts
+  the timer. Leave important messages open for manual dismissal.
 
 ### Local UI preview
 
