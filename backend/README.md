@@ -37,7 +37,8 @@ Logout clears the browser cookie; it does not revoke an existing JWT.
 Run these commands from `backend/`, using the Node.js version in `../.nvmrc`.
 Set `DATABASE_URL` to a reachable PostgreSQL database and provide `JWT_SECRET`
 in the backend process environment. Keep the secret private and stable.
-Compose supplies these variables when running the container stack.
+Compose supplies these variables and applies committed migrations before the
+backend starts. The commands below are for running the backend outside Compose.
 
 ```bash
 npm ci
@@ -109,6 +110,6 @@ Database integration tests may clear test data. See the
 [project README](../README.md#validation) for environment and validation details.
 
 Browser E2E tests use a separate Docker stack and test database. Its migration
-service runs `test:db:prepare` before the backend starts; development Compose
-still requires migrations to be applied manually. See the
+service runs `test:db:prepare`; normal Compose runs `prisma:migrate:deploy`.
+Both wait for migration success before starting the backend. See the
 [E2E guide](../e2e/README.md) for commands and cleanup.

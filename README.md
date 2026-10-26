@@ -44,7 +44,7 @@ and publicly trusted certificates are not configured yet.
 - `frontend/`: React application, frontend Dockerfile, and Nginx configuration.
 - `backend/`: NestJS application, Prisma configuration and schema, and
   backend Dockerfile.
-- `compose.yml`: frontend, backend, and PostgreSQL services.
+- `compose.yml`: frontend, backend, PostgreSQL, and a one-shot migration service.
 - `e2e/`: Playwright tests, configuration, and test runner Dockerfile.
 - `compose.e2e.yml` and `.env.e2e.example`: isolated browser test environment.
 - `scripts/generate-local-cert.sh`: local TLS certificate generation.
@@ -86,6 +86,11 @@ Build and start the complete application:
 ```bash
 docker compose up --build
 ```
+
+Compose applies committed Prisma migrations after PostgreSQL is healthy and
+before the backend starts. The migration container exits with code 0 on success;
+already-applied migrations are skipped. If migration fails, check
+`docker compose logs migration` before retrying.
 
 Open:
 

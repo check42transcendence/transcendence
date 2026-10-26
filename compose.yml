@@ -20,6 +20,18 @@ services:
       retries: 5
       start_period: 10s
 
+  migration:
+    build:
+      context: ./backend
+      target: migration
+    init: true
+    command: ["npm", "run", "prisma:migrate:deploy"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   backend:
     build:
       context: ./backend
@@ -33,6 +45,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migration:
+        condition: service_completed_successfully
     healthcheck:
       test:
         [
