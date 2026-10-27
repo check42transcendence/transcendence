@@ -22,6 +22,7 @@ Currently implemented:
 - Auth APIs for registration, login, current-user lookup, and logout, using
   PostgreSQL, bcrypt password hashing, and JWT authentication cookies.
 - PostgreSQL with persistent storage and Prisma database integration.
+- Trip, membership, and itinerary-day database models, migrations, and constraint tests.
 - Docker Compose stack with service health checks and a non-root backend.
 - Nginx gateway with local HTTPS and HTTP-to-HTTPS redirection.
 - Playwright browser tests for the complete Auth flow in an isolated Docker stack.
@@ -33,8 +34,9 @@ log the user in; login sets a Secure, HttpOnly cookie. Logout clears the
 cookie without revoking issued JWTs.
 `/home` is a temporary Auth verification page, not the final travel workspace.
 
-Domain database models and migrations, travel features, and real-time
-collaboration are not implemented yet.
+Trip APIs, automatic Owner/Days creation, travel pages, and real-time
+collaboration are not implemented yet. See the [P0 database design](docs/database/p0-database-erd.md)
+for the target structure and current implementation status.
 
 HTTPS currently uses a local self-signed certificate. Public deployment
 and publicly trusted certificates are not configured yet.
@@ -183,7 +185,7 @@ Replace the URL placeholders with your database settings. Compose's
 PostgreSQL service is not published to the host, so this workflow requires
 a separately reachable database.
 
-Apply committed migrations before using Auth, and again after pulling new
+Apply committed migrations before using the backend, and again after pulling new
 migrations. Keep `JWT_SECRET` stable between starts to preserve login sessions.
 Authentication cookies require HTTPS; use the Compose gateway for login testing.
 

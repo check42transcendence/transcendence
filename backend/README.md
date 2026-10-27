@@ -52,6 +52,20 @@ migrations before using the updated backend. Generated files in
 `src/generated/` are ignored by Git.
 
 
+## Trip database
+
+Implemented models: `User`, `Trip`, `TripMember`, and `ItineraryDay`.
+Trip APIs and automatic Owner/Days creation are not implemented yet.
+See the [P0 database design](../docs/database/p0-database-erd.md) for future tables.
+
+Migrations enforce valid Trip dates, positive Day numbers, unique memberships
+and Day numbers/dates, and at most one Owner per Trip. Deleting a Trip cascades
+to its memberships and Days while preserving users. The CHECK constraints and
+Owner partial unique index are defined in migration SQL; preserve them in future migrations.
+
+`test/database/trip.db-spec.ts` verifies these rules using the existing
+`test:db:prepare` and `test:db` commands described below.
+
 ## Testing strategy
 
 Choose the test type that best matches the behavior being verified. Keep tests repeatable, isolated from development data, and easy for other contributors to run.
