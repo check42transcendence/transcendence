@@ -23,6 +23,8 @@ Currently implemented:
   PostgreSQL, bcrypt password hashing, and JWT authentication cookies.
 - PostgreSQL with persistent storage and Prisma database integration.
 - Trip, membership, and itinerary-day database models, migrations, and constraint tests.
+- Authenticated Trip creation with automatic Owner/Days, plus member-scoped list,
+  detail, and Days APIs.
 - Docker Compose stack with service health checks and a non-root backend.
 - Nginx gateway with local HTTPS and HTTP-to-HTTPS redirection.
 - Playwright browser tests for the complete Auth flow in an isolated Docker stack.
@@ -34,9 +36,9 @@ log the user in; login sets a Secure, HttpOnly cookie. Logout clears the
 cookie without revoking issued JWTs.
 `/home` is a temporary Auth verification page, not the final travel workspace.
 
-Trip APIs, automatic Owner/Days creation, travel pages, and real-time
-collaboration are not implemented yet. See the [P0 database design](docs/database/p0-database-erd.md)
-for the target structure and current implementation status.
+Trip deletion, travel pages, and real-time collaboration are not implemented yet.
+See the [P0 database design](docs/database/p0-database-erd.md) for the target
+structure and current implementation status.
 
 HTTPS currently uses a local self-signed certificate. Public deployment
 and publicly trusted certificates are not configured yet.

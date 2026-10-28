@@ -6,7 +6,7 @@ Reference date: 2026-10-27. This is the P0 target design, not a claim that all t
 
 - Implemented tables: `user`, `trip`, `trip_member`, and `itinerary_day`.
 - Invitations, Activities, Proposals, and Votes below are planned P0 tables.
-- Trip creation APIs and automatic Owner/Days generation are future backend work.
+- Trip creation now saves Owner membership and all Days atomically; member-scoped list, detail, and Days APIs are implemented.
 - Database constraints are verified in `backend/test/database/trip.db-spec.ts`.
 
 [View the SVG diagram](p0-database-erd.svg). The diagram shows the full P0 target.
