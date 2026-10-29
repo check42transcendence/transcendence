@@ -159,4 +159,53 @@ describe('Trip HTTP integration', () => {
         });
     }
   });
+
+  // Return 204 with no response body after owner deletion.
+  it('returns 204 with no body after owner deletion', async () => {
+    const createResult = await app
+      .get(TripsService)
+      .create(ownerId, createInput);
+
+    const deleteResponse = await request(app.getHttpServer())
+      .delete(`/api/trips/${createResult.trip.id}`)
+      .set('Cookie', ownerCookie)
+      .expect(204);
+
+    expect(deleteResponse.text).toBe('');
+  });
+
+  // Reject member deletion and preserve the trip.
+  it('returns 403 when an ordinary member deletes a trip', async () => {
+    const createResult = await app
+      .get(TripsService)
+      .create(ownerId, createInput);
+    const tripId = createResult.trip.id;
+
+    await prisma.tripMember.create({
+      data: {
+        tripId: tripId,
+        userId: otherUserId,
+        role: 'MEMBER',
+      },
+    });
+
+    await request(app.getHttpServer())
+      .delete(`/api/trips/${tripId}`)
+      .set('Cookie', otherCookie)
+      .expect(403, {
+        error: {
+          code: 'TRIP_OWNER_REQUIRED',
+          message: 'Trip owner required',
+          details: {},
+        },
+      });
+
+    const savedTrip = await prisma.trip.findUnique({
+      where: {
+        id: tripId,
+      },
+    });
+
+    expect(savedTrip).not.toBeNull();
+  });
 });
