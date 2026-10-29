@@ -4,8 +4,10 @@ import {
   Inject,
   Post,
   Get,
+  Delete,
   Param,
   ParseUUIDPipe,
+  HttpCode,
 } from '@nestjs/common';
 import { TripsService } from './trips.service.js';
 import { CreateTripDto } from './dto/create-trip.dto.js';
@@ -46,5 +48,15 @@ export class TripsController {
     @Param('tripId', new ParseUUIDPipe()) tripId: string,
   ) {
     return this.tripsService.findDays(user.sub, tripId);
+  }
+
+  // Request trip deletion using the authenticated user's identity.
+  @Delete(':tripId')
+  @HttpCode(204)
+  remove(
+    @CurrentUser() user: { sub: string },
+    @Param('tripId', new ParseUUIDPipe()) tripId: string,
+  ) {
+    return this.tripsService.remove(user.sub, tripId);
   }
 }

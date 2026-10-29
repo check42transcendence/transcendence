@@ -21,6 +21,15 @@ describe('TripsService database integration', () => {
   let tripsService: TripsService;
   let creatorId: string;
 
+  // Reuse valid input; individual tests override only the fields they exercise.
+  const createInput = {
+    title: 'Paris weekend',
+    destination: 'Paris',
+    startDate: '2026-11-03',
+    endDate: '2026-11-04',
+    description: null,
+  };
+
   // Connect the service to the dedicated test database.
   beforeAll(async () => {
     vi.stubEnv('DATABASE_URL', getTestDatabaseUrl());
@@ -62,13 +71,7 @@ describe('TripsService database integration', () => {
 
   // Create a trip with its owner and every day in the date range.
   it('creates a trip with an owner and all itinerary days', async () => {
-    const createResult = await tripsService.create(creatorId, {
-      title: 'Paris weekend',
-      destination: 'Paris',
-      startDate: '2026-11-03',
-      endDate: '2026-11-04',
-      description: null,
-    });
+    const createResult = await tripsService.create(creatorId, createInput);
 
     const savedTrip = await prisma.trip.findUniqueOrThrow({
       where: {
@@ -106,11 +109,8 @@ describe('TripsService database integration', () => {
   // Create exactly one day for a single-day trip.
   it('creates one day for a single-day trip', async () => {
     const createResult = await tripsService.create(creatorId, {
-      title: 'Paris weekend',
-      destination: 'Paris',
-      startDate: '2026-11-03',
+      ...createInput,
       endDate: '2026-11-03',
-      description: null,
     });
 
     const savedTrip = await prisma.trip.findUniqueOrThrow({
@@ -176,11 +176,9 @@ describe('TripsService database integration', () => {
   it('rejects reversed dates without saving a trip', async () => {
     await expect(
       tripsService.create(creatorId, {
-        title: 'Paris weekend',
-        destination: 'Paris',
+        ...createInput,
         startDate: '2026-11-04',
         endDate: '2026-11-03',
-        description: null,
       }),
     ).rejects.toThrow('End date must not be earlier than start date');
 
@@ -191,14 +189,6 @@ describe('TripsService database integration', () => {
 
   // List only trips where the caller is a current member.
   it('lists only the current user’s trips', async () => {
-    const createInput = {
-      title: 'Paris weekend',
-      destination: 'Paris',
-      startDate: '2026-11-03',
-      endDate: '2026-11-04',
-      description: null,
-    };
-
     const createResult = await tripsService.create(creatorId, createInput);
 
     const otherUser = await prisma.user.create({
@@ -228,13 +218,7 @@ describe('TripsService database integration', () => {
 
   // Allow owners and members to read trip details and ordered days.
   it('allows current members to read trip details and days', async () => {
-    const createResult = await tripsService.create(creatorId, {
-      title: 'Paris weekend',
-      destination: 'Paris',
-      startDate: '2026-11-03',
-      endDate: '2026-11-04',
-      description: null,
-    });
+    const createResult = await tripsService.create(creatorId, createInput);
     const tripId = createResult.trip.id;
 
     const memberUser = await prisma.user.create({
@@ -301,15 +285,9 @@ describe('TripsService database integration', () => {
     `;
 
     try {
-      await expect(
-        tripsService.create(creatorId, {
-          title: 'Paris weekend',
-          destination: 'Paris',
-          startDate: '2026-11-03',
-          endDate: '2026-11-04',
-          description: null,
-        }),
-      ).rejects.toThrow('trip_service_test_reject_second_day');
+      await expect(tripsService.create(creatorId, createInput)).rejects.toThrow(
+        'trip_service_test_reject_second_day',
+      );
 
       expect(await prisma.trip.count()).toBe(0);
       expect(await prisma.tripMember.count()).toBe(0);
@@ -326,13 +304,7 @@ describe('TripsService database integration', () => {
 
   // Hide both inaccessible and missing trips from detail and day queries.
   it('rejects non-members and missing trips without exposing trip data', async () => {
-    const createResult = await tripsService.create(creatorId, {
-      title: 'Paris weekend',
-      destination: 'Paris',
-      startDate: '2026-11-03',
-      endDate: '2026-11-04',
-      description: null,
-    });
+    const createResult = await tripsService.create(creatorId, createInput);
 
     const otherUser = await prisma.user.create({
       data: {
@@ -362,6 +334,141 @@ describe('TripsService database integration', () => {
         response: { error: { code: 'TRIP_NOT_FOUND' } },
       });
     }
+  });
+
+  // Delete the target workspace while preserving users and other trips.
+  it('deletes a trip and its workspace without affecting other trips', async () => {
+    const createResult = await tripsService.create(creatorId, createInput);
+    const otherCreateResult = await tripsService.create(creatorId, createInput);
+
+    const tripId = createResult.trip.id;
+    const otherTripId = otherCreateResult.trip.id;
+
+    await tripsService.remove(creatorId, tripId);
+
+    expect(await prisma.trip.findUnique({ where: { id: tripId } })).toBeNull();
+
+    expect(await prisma.tripMember.count({ where: { tripId: tripId } })).toBe(
+      0,
+    );
+
+    expect(await prisma.itineraryDay.count({ where: { tripId: tripId } })).toBe(
+      0,
+    );
+
+    expect(
+      await prisma.user.findUnique({ where: { id: creatorId } }),
+    ).not.toBeNull();
+
+    const otherSavedTrip = await prisma.trip.findUniqueOrThrow({
+      where: {
+        id: otherTripId,
+      },
+      include: {
+        members: true,
+        days: true,
+      },
+    });
+
+    expect(otherSavedTrip.members).toHaveLength(1);
+    expect(otherSavedTrip.days).toHaveLength(2);
+  });
+
+  // Reject member deletion without changing the workspace.
+  it('rejects deletion by an ordinary member', async () => {
+    const createResult = await tripsService.create(creatorId, {
+      ...createInput,
+      title: 'Owner trip',
+    });
+    const tripId = createResult.trip.id;
+
+    const memberUser = await prisma.user.create({
+      data: {
+        email: 'member@example.invalid',
+        username: 'member',
+        passwordHash: 'test-placeholder',
+      },
+    });
+
+    await prisma.tripMember.create({
+      data: {
+        tripId: tripId,
+        userId: memberUser.id,
+        role: 'MEMBER',
+      },
+    });
+
+    await expect(
+      tripsService.remove(memberUser.id, tripId),
+    ).rejects.toMatchObject({
+      status: 403,
+      response: {
+        error: {
+          code: 'TRIP_OWNER_REQUIRED',
+        },
+      },
+    });
+
+    const savedTrip = await prisma.trip.findUniqueOrThrow({
+      where: {
+        id: tripId,
+      },
+      include: {
+        members: true,
+        days: true,
+      },
+    });
+
+    expect(savedTrip.members).toHaveLength(2);
+    expect(savedTrip.days).toHaveLength(2);
+  });
+
+  // Hide inaccessible and missing trips without deleting existing data.
+  it('rejects deletion of inaccessible or missing trips', async () => {
+    const createResult = await tripsService.create(creatorId, {
+      ...createInput,
+      title: 'Private trip',
+    });
+    const tripId = createResult.trip.id;
+
+    const otherUser = await prisma.user.create({
+      data: {
+        email: 'other-user@example.invalid',
+        username: 'other-user',
+        passwordHash: 'test-placeholder',
+      },
+    });
+
+    const requests = [
+      { userId: otherUser.id, tripId: tripId },
+      { userId: creatorId, tripId: randomUUID() },
+    ];
+
+    for (const request of requests) {
+      await expect(
+        tripsService.remove(request.userId, request.tripId),
+      ).rejects.toMatchObject({
+        status: 404,
+        response: {
+          error: {
+            code: 'TRIP_NOT_FOUND',
+          },
+        },
+      });
+    }
+
+    const savedTrip = await prisma.trip.findUniqueOrThrow({
+      where: {
+        id: tripId,
+      },
+      include: {
+        members: true,
+        days: true,
+      },
+    });
+
+    expect(savedTrip.members).toHaveLength(1);
+    expect(savedTrip.days).toHaveLength(2);
   });
 
   // Sort newest trips first and use descending IDs for equal timestamps.

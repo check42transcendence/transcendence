@@ -25,6 +25,8 @@ Currently implemented:
 - Trip, membership, and itinerary-day database models, migrations, and constraint tests.
 - Authenticated Trip creation with automatic Owner/Days, plus member-scoped list,
   detail, and Days APIs.
+- Owner-only Trip deletion, cleaning up memberships and Days while preserving users
+  and other Trips.
 - Docker Compose stack with service health checks and a non-root backend.
 - Nginx gateway with local HTTPS and HTTP-to-HTTPS redirection.
 - Playwright browser tests for the complete Auth flow in an isolated Docker stack.
@@ -36,7 +38,7 @@ log the user in; login sets a Secure, HttpOnly cookie. Logout clears the
 cookie without revoking issued JWTs.
 `/home` is a temporary Auth verification page, not the final travel workspace.
 
-Trip deletion, travel pages, and real-time collaboration are not implemented yet.
+Travel pages and real-time collaboration are not implemented yet.
 See the [P0 database design](docs/database/p0-database-erd.md) for the target
 structure and current implementation status.
 
