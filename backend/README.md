@@ -52,19 +52,38 @@ migrations before using the updated backend. Generated files in
 `src/generated/` are ignored by Git.
 
 
-## Trip database
+## Trips
 
 Implemented models: `User`, `Trip`, `TripMember`, and `ItineraryDay`.
-Trip APIs and automatic Owner/Days creation are not implemented yet.
 See the [P0 database design](../docs/database/p0-database-erd.md) for future tables.
+
+All Trip endpoints require authentication:
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| POST | `/api/trips` | Creates a Trip, Owner membership, and all Days atomically; returns 201. |
+| GET | `/api/trips` | Lists Trips the caller currently belongs to, with their role. |
+| GET | `/api/trips/:tripId` | Returns details to current members. |
+| GET | `/api/trips/:tripId/days` | Returns Days to current members, ordered by day number. |
+
+Dates use `YYYY-MM-DD`. Creation includes both start and end dates; a same-day
+Trip has one Day. Creation is limited to 365 days; longer ranges return
+`400 VALIDATION_ERROR` before Days are generated. Lists use `createdAt` descending,
+then `id` descending for equal timestamps.
+Detail/Days reads return `404 TRIP_NOT_FOUND` for missing or
+inaccessible Trips. The delete API is pending; P0 does not allow base-field editing.
 
 Migrations enforce valid Trip dates, positive Day numbers, unique memberships
 and Day numbers/dates, and at most one Owner per Trip. Deleting a Trip cascades
 to its memberships and Days while preserving users. The CHECK constraints and
 Owner partial unique index are defined in migration SQL; preserve them in future migrations.
 
-`test/database/trip.db-spec.ts` verifies these rules using the existing
-`test:db:prepare` and `test:db` commands described below.
+Trip tests use the commands below:
+
+- `test/database/trip.db-spec.ts`: database constraints (`npm run test:db`).
+- `test/database/trips.service.db-spec.ts`: creation, rollback, and member access (`npm run test:db`).
+- `test/trips.integration.spec.ts`: unauthenticated route protection (`npm test`).
+- `test/trips.e2e-spec.ts`: HTTP creation, validation, and access errors (`npm run test:e2e`).
 
 ## Testing strategy
 

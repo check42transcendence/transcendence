@@ -12,12 +12,10 @@ describe('LoginDto', () => {
 
     const errors = await validate(dto);
 
-    expect(
-      errors.some((error) => error.property === 'password'),
-    ).toBe(true);
+    expect(errors.some((error) => error.property === 'password')).toBe(true);
   });
 
-// Accepts a password at the minimum character length.
+  // Accepts a password at the minimum character length.
   it('accepts a password with exactly 8 characters', async () => {
     const dto = plainToInstance(LoginDto, {
       email: 'alice@example.com',
@@ -46,8 +44,6 @@ describe('LoginDto', () => {
 
     const errors = await validate(dto);
 
-    expect(
-      errors.some((error) => error.property === 'password'),
-    ).toBe(true);
+    expect(errors.some((error) => error.property === 'password')).toBe(true);
   });
 });

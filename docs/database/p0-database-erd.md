@@ -6,7 +6,7 @@ Reference date: 2026-10-27. This is the P0 target design, not a claim that all t
 
 - Implemented tables: `user`, `trip`, `trip_member`, and `itinerary_day`.
 - Invitations, Activities, Proposals, and Votes below are planned P0 tables.
-- Trip creation APIs and automatic Owner/Days generation are future backend work.
+- Trip creation now saves Owner membership and all Days atomically; member-scoped list, detail, and Days APIs are implemented.
 - Database constraints are verified in `backend/test/database/trip.db-spec.ts`.
 
 [View the SVG diagram](p0-database-erd.svg). The diagram shows the full P0 target.
@@ -140,7 +140,7 @@ erDiagram
 | Area | Required rule |
 | --- | --- |
 | User identity | Unique lower(email) and lower(username); trim before lookup/storage. Ordinary case-sensitive uniqueness alone is insufficient. |
-| Trip dates | end_date >= start_date. Base fields are immutable in P0. |
+| Trip dates | end_date >= start_date. API creation is limited to 365 days inclusive, checked before generating Days. Base fields are immutable in P0. |
 | Membership | UNIQUE(trip_id, user_id); at most one OWNER enforced in the database. Creation guarantees exactly one OWNER. Current role, not trip.created_by, determines authority. |
 | Pending Invitation | At most one PENDING row per (trip_id, invitee_id), using a partial unique constraint/index. Resolved historical Invitations may remain, and re-invitation after rejection is allowed. |
 | Days | UNIQUE(trip_id, date), UNIQUE(trip_id, day_number), day_number >= 1. Generate all dates in the Trip range, inclusive, in the Trip creation transaction. No Day CRUD. |

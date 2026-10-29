@@ -66,9 +66,7 @@ describe('RegisterDto', () => {
 
     const errors = await validate(dto);
 
-    expect(
-      errors.some((error) => error.property === 'password'),
-    ).toBe(true);
+    expect(errors.some((error) => error.property === 'password')).toBe(true);
   });
 
   // Accepts a password at the minimum character length.
@@ -105,8 +103,6 @@ describe('RegisterDto', () => {
 
     const errors = await validate(dto);
 
-    expect(
-      errors.some((error) => error.property === 'password'),
-    ).toBe(true);
+    expect(errors.some((error) => error.property === 'password')).toBe(true);
   });
 });
