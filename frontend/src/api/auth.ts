@@ -1,33 +1,14 @@
+import type {
+	RegisterInput,
+	LoginInput,
+	UserResponse,
+} from '@tripcollab/shared'
+
 import {
     apiClient,
     apiJson,
     apiPostJson
 } from "../shared/api/api-client"
-
-// Data sent when registering a user.
-export interface RegisterInput {
-    email: string
-    username: string
-    password: string
-}
-
-// Data sent when logging in.
-export interface LoginInput {
-    email: string
-    password: string
-}
-
-// Public information about the current user.
-export interface CurrentUser {
-    id: string
-    email: string
-    username: string
-}
-
-// Response containing public user information.
-export interface UserResponse {
-    user: CurrentUser
-}
 
 // Sends registration data to the backend.
 export function register(input: RegisterInput): Promise<UserResponse> {

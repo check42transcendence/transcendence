@@ -1,3 +1,4 @@
+import type { LoginInput } from '@tripcollab/shared';
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
@@ -9,7 +10,7 @@ import {
 } from 'class-validator';
 
 // Validates login input; only the email is trimmed.
-export class LoginDto {
+export class LoginDto implements LoginInput{
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )

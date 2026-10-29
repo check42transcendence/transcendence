@@ -9,10 +9,14 @@ import {
   login,
   getMe,
   logout,
-  type RegisterInput,
-  type LoginInput,
-  type CurrentUser,
 } from './api/auth'
+
+import type {
+  RegisterInput,
+  LoginInput,
+  CurrentUser,
+} from '@tripcollab/shared'
+
 import { ApiError } from './shared/api/api-error'
 import { t } from './shared/i18n/translation'
 

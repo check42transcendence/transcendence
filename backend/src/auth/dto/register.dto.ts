@@ -1,3 +1,4 @@
+import type { RegisterInput } from '@tripcollab/shared';
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
@@ -6,10 +7,11 @@ import {
   MaxLength,
   MinLength,
   IsByteLength,
+  isMongoId,
 } from 'class-validator';
 
 // Validates registration fields and trims email and username.
-export class RegisterDto {
+export class RegisterDto implements RegisterInput{
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
   )
