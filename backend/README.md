@@ -65,22 +65,27 @@ All Trip endpoints require authentication:
 | GET | `/api/trips` | Lists Trips the caller currently belongs to, with their role. |
 | GET | `/api/trips/:tripId` | Returns details to current members. |
 | GET | `/api/trips/:tripId/days` | Returns Days to current members, ordered by day number. |
+| DELETE | `/api/trips/:tripId` | Deletes the Trip for its current Owner; returns 204 with no body. |
 
 Dates use `YYYY-MM-DD`. Creation includes both start and end dates; a same-day
 Trip has one Day. Detail/Days reads return `404 TRIP_NOT_FOUND` for missing or
-inaccessible Trips. The delete API is pending; P0 does not allow base-field editing.
+inaccessible Trips. Deletion checks current membership: ordinary Members receive
+`403 TRIP_OWNER_REQUIRED`; non-members or missing Trips receive `404 TRIP_NOT_FOUND`.
+P0 does not allow base-field editing.
 
 Migrations enforce valid Trip dates, positive Day numbers, unique memberships
 and Day numbers/dates, and at most one Owner per Trip. Deleting a Trip cascades
 to its memberships and Days while preserving users. The CHECK constraints and
 Owner partial unique index are defined in migration SQL; preserve them in future migrations.
+Cleanup of Invitations, Activities, Proposals, and Votes must be integrated and
+verified as those models become available.
 
 Trip tests use the commands below:
 
 - `test/database/trip.db-spec.ts`: database constraints (`npm run test:db`).
-- `test/database/trips.service.db-spec.ts`: creation, rollback, and member access (`npm run test:db`).
+- `test/database/trips.service.db-spec.ts`: creation, rollback, member access, and deletion cleanup (`npm run test:db`).
 - `test/trips.integration.spec.ts`: unauthenticated route protection (`npm test`).
-- `test/trips.e2e-spec.ts`: HTTP creation, validation, and access errors (`npm run test:e2e`).
+- `test/trips.e2e-spec.ts`: HTTP creation, validation, access errors, and deletion (`npm run test:e2e`).
 
 ## Testing strategy
 

@@ -3,6 +3,7 @@ import {
   Inject,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { CreateTripDto } from './dto/create-trip.dto.js';
 import { PrismaService } from '../database/prisma.service.js';
@@ -232,5 +233,61 @@ export class TripsService {
         };
       }),
     };
+  }
+
+  // Allow only the current owner to proceed with trip deletion.
+  async remove(userId: string, tripId: string) {
+    const membership = await this.prisma.tripMember.findFirst({
+      where: {
+        tripId: tripId,
+        userId: userId,
+      },
+      select: {
+        role: true,
+      },
+    });
+
+    if (!membership) {
+      throw new NotFoundException({
+        error: {
+          code: 'TRIP_NOT_FOUND',
+          message: 'Trip not found',
+          details: {},
+        },
+      });
+    }
+
+    if (membership.role !== 'OWNER') {
+      throw new ForbiddenException({
+        error: {
+          code: 'TRIP_OWNER_REQUIRED',
+          message: 'Trip owner required',
+          details: {},
+        },
+      });
+    }
+
+    // Delete only while the caller still has an owner membership.
+    const deleteResult = await this.prisma.trip.deleteMany({
+      where: {
+        id: tripId,
+        members: {
+          some: {
+            userId: userId,
+            role: 'OWNER',
+          },
+        },
+      },
+    });
+
+    if (deleteResult.count === 0) {
+      throw new NotFoundException({
+        error: {
+          code: 'TRIP_OWNER_REQUIRED',
+          message: 'Trip owner required',
+          details: {},
+        },
+      });
+    }
   }
 }
