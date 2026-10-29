@@ -173,6 +173,8 @@ Returns only Trips where current User has current Membership.
 
 Each item includes `currentUserRole`.
 
+Order by `createdAt` descending, then `id` descending for equal timestamps.
+
 ### POST /api/trips
 
 Request:
@@ -186,6 +188,9 @@ Request:
   "description": null
 }
 ```
+
+Trips may span at most 365 days, including both endpoints. Reject larger ranges
+with `400 VALIDATION_ERROR` before generating Days or writing data.
 
 Backend atomically creates Trip, OWNER Membership, and all Days.
 

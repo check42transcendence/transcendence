@@ -67,7 +67,10 @@ All Trip endpoints require authentication:
 | GET | `/api/trips/:tripId/days` | Returns Days to current members, ordered by day number. |
 
 Dates use `YYYY-MM-DD`. Creation includes both start and end dates; a same-day
-Trip has one Day. Detail/Days reads return `404 TRIP_NOT_FOUND` for missing or
+Trip has one Day. Creation is limited to 365 days; longer ranges return
+`400 VALIDATION_ERROR` before Days are generated. Lists use `createdAt` descending,
+then `id` descending for equal timestamps.
+Detail/Days reads return `404 TRIP_NOT_FOUND` for missing or
 inaccessible Trips. The delete API is pending; P0 does not allow base-field editing.
 
 Migrations enforce valid Trip dates, positive Day numbers, unique memberships

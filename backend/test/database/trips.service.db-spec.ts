@@ -136,6 +136,42 @@ describe('TripsService database integration', () => {
     ).toEqual([{ dayNumber: 1, date: '2026-11-03' }]);
   });
 
+  // Allow the maximum duration, counting both start and end dates.
+  it('allows a trip lasting exactly 365 days', async () => {
+    const createResult = await tripsService.create(creatorId, {
+      title: 'Maximum duration trip',
+      destination: 'Paris',
+      startDate: '2027-01-01',
+      endDate: '2027-12-31',
+      description: null,
+    });
+
+    const dayCount = await prisma.itineraryDay.count({
+      where: {
+        tripId: createResult.trip.id,
+      },
+    });
+
+    expect(dayCount).toBe(365);
+  });
+
+  // Reject trips above the limit without saving workspace data.
+  it('rejects a trip lasting 366 days without saving data', async () => {
+    await expect(
+      tripsService.create(creatorId, {
+        title: 'Over-limit trip',
+        destination: 'Paris',
+        startDate: '2027-01-01',
+        endDate: '2028-01-01',
+        description: null,
+      }),
+    ).rejects.toThrow('Trip duration must not exceed 365 days');
+
+    expect(await prisma.trip.count()).toBe(0);
+    expect(await prisma.tripMember.count()).toBe(0);
+    expect(await prisma.itineraryDay.count()).toBe(0);
+  });
+
   // Reject reversed dates without saving a trip.
   it('rejects reversed dates without saving a trip', async () => {
     await expect(
@@ -326,5 +362,51 @@ describe('TripsService database integration', () => {
         response: { error: { code: 'TRIP_NOT_FOUND' } },
       });
     }
+  });
+
+  // Sort newest trips first and use descending IDs for equal timestamps.
+  it('orders trips by creation time and then ID descending', async () => {
+    const tripRecords = [
+      {
+        id: '00000000-0000-4000-8000-000000000003',
+        createdAt: new Date('2027-01-01T00:00:00.000Z'),
+      },
+      {
+        id: '00000000-0000-4000-8000-000000000001',
+        createdAt: new Date('2027-01-02T00:00:00.000Z'),
+      },
+      {
+        id: '00000000-0000-4000-8000-000000000002',
+        createdAt: new Date('2027-01-02T00:00:00.000Z'),
+      },
+    ];
+
+    for (const tripRecord of tripRecords) {
+      await prisma.trip.create({
+        data: {
+          id: tripRecord.id,
+          createdAt: tripRecord.createdAt,
+          title: 'Sorting test',
+          destination: 'Paris',
+          startDate: new Date('2027-02-01T00:00:00.000Z'),
+          endDate: new Date('2027-02-01T00:00:00.000Z'),
+          createdBy: creatorId,
+          members: {
+            create: {
+              userId: creatorId,
+              role: 'OWNER',
+            },
+          },
+        },
+      });
+    }
+
+    const listResult = await tripsService.findAll(creatorId);
+
+    expect(listResult.trips.map((trip) => trip.id)).toEqual([
+      '00000000-0000-4000-8000-000000000002',
+      '00000000-0000-4000-8000-000000000001',
+      '00000000-0000-4000-8000-000000000003',
+    ]);
   });
 });
