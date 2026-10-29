@@ -68,7 +68,10 @@ All Trip endpoints require authentication:
 | DELETE | `/api/trips/:tripId` | Deletes the Trip for its current Owner; returns 204 with no body. |
 
 Dates use `YYYY-MM-DD`. Creation includes both start and end dates; a same-day
-Trip has one Day. Detail/Days reads return `404 TRIP_NOT_FOUND` for missing or
+Trip has one Day. Creation is limited to 365 days; longer ranges return
+`400 VALIDATION_ERROR` before Days are generated. Lists use `createdAt` descending,
+then `id` descending for equal timestamps.
+Detail/Days reads return `404 TRIP_NOT_FOUND` for missing or
 inaccessible Trips. Deletion checks current membership: ordinary Members receive
 `403 TRIP_OWNER_REQUIRED`; non-members or missing Trips receive `404 TRIP_NOT_FOUND`.
 P0 does not allow base-field editing.
