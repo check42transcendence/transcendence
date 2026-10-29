@@ -295,8 +295,8 @@ export class TripsService {
     if (deleteResult.count === 0) {
       throw new NotFoundException({
         error: {
-          code: 'TRIP_OWNER_REQUIRED',
-          message: 'Trip owner required',
+          code: 'TRIP_NOT_FOUND',
+          message: 'Trip not found',
           details: {},
         },
       });
