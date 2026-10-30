@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate } from 'react-router'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { HomePage } from './pages/HomePage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import {
   register,
@@ -176,24 +177,12 @@ function App() {
         path="/home"
         element={
           currentUser ? (
-            <main>
-              <h1>{t('auth.session.signedIn')}</h1>
-              <p>{currentUser.username}</p>
-
-              {logoutError && (
-                <p role="alert">{logoutError}</p>
-              )}
-
-              <button
-                type="button"
-                disabled={logoutLoading}
-                onClick={handleLogout}
-              >
-                {logoutLoading
-                  ? t('auth.logout.pending')
-                  : t('auth.logout.action')}
-              </button>
-            </main>
+            <HomePage
+              username={currentUser.username}
+              onLogout={handleLogout}
+              logoutLoading={logoutLoading}
+              logoutError={logoutError}
+            />
           ) : (
             <Navigate to="/login" replace />
           )

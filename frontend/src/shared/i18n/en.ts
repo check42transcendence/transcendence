@@ -54,4 +54,15 @@ export const en = {
     'notFound.title': 'Page not found',
     'notFound.description': 'The page you requested does not exist.',
     'notFound.actions.goToLogin': 'Go to login',
+
+    // Home
+    'trips.home.error': 'Unable to load your trips. Please try again.',
+    'trips.home.title': 'My trips',
+    'trips.home.loading': 'Loading your trips...',
+    'trips.home.empty.title': 'No trips yet',
+    'trips.home.empty.description': 'Create a trip to start planning together.',
+
+    // Membership roles shared by trip pages.
+    'trips.shared.roles.owner': 'Owner',
+    'trips.shared.roles.member': 'Member',
 }
