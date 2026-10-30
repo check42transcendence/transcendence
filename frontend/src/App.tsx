@@ -4,6 +4,8 @@ import { Navigate, Route, Routes, useNavigate } from 'react-router'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { HomePage } from './pages/HomePage'
+import { CreateTripPage } from './pages/CreateTripPage'
+import { TripWorkspacePage } from './pages/TripWorkspacePage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import {
   register,
@@ -187,6 +189,29 @@ function App() {
               logoutLoading={logoutLoading}
               logoutError={logoutError}
             />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+
+      {/* Allow only signed-in users to open trip creation. */}
+      <Route
+          path="/trips/new"
+          element={
+            currentUser ? (
+              <CreateTripPage />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+      />
+
+      <Route
+        path="/trips/:tripsId"
+        element={
+          currentUser ? (
+            <TripWorkspacePage />
           ) : (
             <Navigate to="/login" replace />
           )

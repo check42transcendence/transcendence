@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router'
 import { getTrips, type TripSummary } from '../api/trips'
 import { PageContainer } from '../components/layout/PageContainer'
 import { Button } from '../components/ui/Button'
@@ -77,6 +78,14 @@ export function HomePage({
             <section className="mt-8">
                 <h2>{t('trips.home.title')}</h2>
 
+                {/* Open the trip creation page without reloading the application. */}
+                <Link
+                    to="/trips/new"
+                    className="tc-focus inline-block text-link underline"
+                >
+                    {t('trips.shared.actions.create')}
+                </Link>
+
                 {tripsLoading && (
                     <p role="status">{t('trips.home.loading')}</p>
                 )}
@@ -99,7 +108,12 @@ export function HomePage({
                             <li key={trip.id}>
                                 <Card>
                                     <h3 className="text-card-title font-medium">
-                                        {trip.title}
+                                        <Link
+                                            to={`/trips/${trip.id}`}
+                                            className="tc-focus text-link underline"
+                                        >
+                                            {trip.title}
+                                        </Link>
                                     </h3>
 
                                     <p>{trip.destination}</p>

@@ -8,6 +8,7 @@ export const en = {
     // Common messages that any page can reuse.
     'common.actions.retry': 'Retry',
     'common.actions.close': 'Close',
+    'common.actions.cancel': 'Cancel',
 
     // Labels, placeholders, and actions shared by authentication pages.
     'auth.shared.fields.email': 'Email',
@@ -55,7 +56,7 @@ export const en = {
     'notFound.description': 'The page you requested does not exist.',
     'notFound.actions.goToLogin': 'Go to login',
 
-    // Home
+    // Home page text
     'trips.home.error': 'Unable to load your trips. Please try again.',
     'trips.home.title': 'My trips',
     'trips.home.loading': 'Loading your trips...',
@@ -65,4 +66,26 @@ export const en = {
     // Membership roles shared by trip pages.
     'trips.shared.roles.owner': 'Owner',
     'trips.shared.roles.member': 'Member',
+
+    // Actions shared by trip pages.
+    'trips.shared.actions.create': 'Create trip',
+
+    // Field labels shared by trip pages.
+    'trips.shared.fields.title': 'Trip title',
+    'trips.shared.fields.destination': 'Trip destination',
+    'trips.shared.fields.startDate': 'Start date',
+    'trips.shared.fields.endDate': 'End date',
+    'trips.shared.fields.description': 'Description (optional)',
+
+    // Create Trip page messages.
+    'trips.create.title': 'Create trip',
+    'trips.create.validation.required': 'Please complete all required fields.',
+    'trips.create.validation.dateRange': 'End date must not be earlier than start date.',
+    'trips.create.validation.duration': 'A trip must not exceed 365 days.',
+
+    'trips.create.pending': 'Creating trip...',
+    'trips.create.error': 'Unable to create the trip. Please try again.',
+
+    // Trip workspace page messages.
+    'trips.workspace.title': 'Trip workspace',
 }

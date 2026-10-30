@@ -52,6 +52,14 @@ the shared API client. `App.tsx` manages user state, loading, errors, and naviga
   If logout fails, the current user is preserved and an error is shown.
 
 `npm test` runs API and page tests with mocked requests; no backend is required.
+
+Auth tests are grouped by responsibility:
+
+- `src/App.test.tsx`: routing, session restoration, and logout.
+- `src/pages/*.test.tsx`: page tests, including login and registration flows through App.
+- `src/api/auth.test.ts`: Auth API requests and responses.
+- `src/shared/api/api-client.test.ts`: shared HTTP behavior.
+
 Playwright tests verify the real Auth flow using a separate Docker stack
 and database. See the [E2E guide](../e2e/README.md) for running them.
 
