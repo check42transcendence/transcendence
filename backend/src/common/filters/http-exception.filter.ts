@@ -1,3 +1,4 @@
+import type { ApiErrorResponse } from '@tripcollab/shared'
 import {
   ArgumentsHost,
   Catch,
@@ -10,20 +11,21 @@ import {
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 
-type ApiErrorBody = {
-  error: {
-    code: string;
-    message: string;
-    details: Record<string, unknown>;
-  };
-};
-
-function makeError(code: string, message: string): ApiErrorBody {
-  return { error: { code, message, details: {} } };
+function makeError(
+	code: string, 
+	message: string
+): ApiErrorResponse {
+	return { 
+		error: { 
+			code, 
+			message, 
+			details: {} 
+		} 
+	};
 }
 
 // A deliberate domain/Auth error already has the frozen REST shape.
-function isApiErrorBody(value: unknown): value is ApiErrorBody {
+function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
   if (typeof value !== 'object' || value === null) return false;
   const error = (value as { error?: unknown }).error;
   if (typeof error !== 'object' || error === null) return false;
@@ -79,7 +81,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
       const original: unknown = exception.getResponse();
       // Never rewrite intentional feature or Auth machine codes.
-      if (isApiErrorBody(original)) {
+      if (isApiErrorResponse(original)) {
         httpAdapter.reply(response, original, status);
         return;
       }

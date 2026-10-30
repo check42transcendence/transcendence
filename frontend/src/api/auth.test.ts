@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { register, login, getMe, logout } from './auth'
-import type { RegisterInput, LoginInput } from './auth'
+import type { RegisterInput, LoginInput } from '@tripcollab/shared'
 
 // Restores the real fetch after each test.
 afterEach(() => {
