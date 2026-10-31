@@ -6,4 +6,3 @@ export function CurrentPath() {
 
     return <output aria-label="Current path">{location.pathname}</output>
 }
-

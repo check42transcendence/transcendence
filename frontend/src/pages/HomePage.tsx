@@ -9,10 +9,10 @@ import { t } from '../shared/i18n/translation'
 
 // Session information and logout controls provided by App.
 type HomePageProps = {
-  username: string
-  onLogout: () => Promise<void>
-  logoutLoading?: boolean
-  logoutError: string
+    username: string
+    onLogout: () => Promise<void>
+    logoutLoading?: boolean
+    logoutError: string
 }
 
 export function HomePage({
@@ -60,15 +60,9 @@ export function HomePage({
             <h1>{t('auth.session.signedIn')}</h1>
             <p>{username}</p>
 
-            {logoutError && (
-            <p role="alert">{logoutError}</p>
-            )}
+            {logoutError && <p role="alert">{logoutError}</p>}
 
-            <Button
-                type="button"
-                isLoading={logoutLoading}
-                onClick={onLogout}
-            >
+            <Button type="button" isLoading={logoutLoading} onClick={onLogout}>
                 {logoutLoading
                     ? t('auth.logout.pending')
                     : t('auth.logout.action')}
@@ -86,9 +80,7 @@ export function HomePage({
                     {t('trips.shared.actions.create')}
                 </Link>
 
-                {tripsLoading && (
-                    <p role="status">{t('trips.home.loading')}</p>
-                )}
+                {tripsLoading && <p role="status">{t('trips.home.loading')}</p>}
 
                 {!tripsLoading && tripsError && (
                     <p role="alert">{tripsError}</p>
@@ -124,8 +116,8 @@ export function HomePage({
 
                                     <p>
                                         {trip.currentUserRole === 'OWNER'
-                                        ? t('trips.shared.roles.owner')
-                                        : t('trips.shared.roles.member')}
+                                            ? t('trips.shared.roles.owner')
+                                            : t('trips.shared.roles.member')}
                                     </p>
 
                                     {trip.description && (

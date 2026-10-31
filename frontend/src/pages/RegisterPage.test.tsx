@@ -4,7 +4,7 @@ import { expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import App from '../App'
-import { setupAppTests } from '../test/app-test-setup'
+import { setupAppTests } from '../test-utils/app-test-setup'
 
 setupAppTests()
 
@@ -57,9 +57,7 @@ it('registers a user through the registration page', async () => {
         target: { value: 'example-password' },
     })
 
-    fireEvent.click(
-        screen.getByRole('button', { name: 'Create account' }),
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
 
     await screen.findByText('Account created. Please sign in.')
 
@@ -123,20 +121,17 @@ it('shows an error when the registration email already exists', async () => {
         target: { value: 'example-password' },
     })
 
-    fireEvent.click(
-        screen.getByRole('button', { name: 'Create account' }),
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
 
     const alert = await screen.findByRole('alert')
 
     expect(alert.textContent).toBe('Email already exists')
 
-    expect(
-        screen.queryByText('Account created. Please sign in.'),
-    ).toBeNull()
+    expect(screen.queryByText('Account created. Please sign in.')).toBeNull()
 
     expect(
-        screen.getByRole('button', { name: 'Create account' })
+        screen
+            .getByRole('button', { name: 'Create account' })
             .hasAttribute('disabled'),
     ).toBe(false)
 })
@@ -187,20 +182,17 @@ it('shows an error when the registration username already exists', async () => {
         target: { value: 'example-password' },
     })
 
-    fireEvent.click(
-        screen.getByRole('button', { name: 'Create account' }),
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
 
     const alert = await screen.findByRole('alert')
 
     expect(alert.textContent).toBe('Username already exists')
 
-    expect(
-        screen.queryByText('Account created. Please sign in.'),
-    ).toBeNull()
+    expect(screen.queryByText('Account created. Please sign in.')).toBeNull()
 
     expect(
-        screen.getByRole('button', { name: 'Create account' })
+        screen
+            .getByRole('button', { name: 'Create account' })
             .hasAttribute('disabled'),
     ).toBe(false)
 })
@@ -233,9 +225,7 @@ it('blocks registration when the password exceeds 72 UTF-8 bytes', async () => {
         target: { value: password },
     })
 
-    fireEvent.click(
-        screen.getByRole('button', { name: 'Create account' }),
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
 
     expect(screen.getByRole('alert').textContent).toBe(
         'Password must not exceed 72 UTF-8 bytes.',

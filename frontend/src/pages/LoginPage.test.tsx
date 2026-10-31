@@ -4,8 +4,8 @@ import { expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import App from '../App'
-import { setupAppTests } from '../test/app-test-setup'
-import { CurrentPath } from '../test/CurrentPath'
+import { setupAppTests } from '../test-utils/app-test-setup'
+import { CurrentPath } from '../test-utils/CurrentPath'
 
 setupAppTests()
 
@@ -24,7 +24,8 @@ it('logs in and navigates to home', async () => {
         name: 'Welcome back',
     })
 
-    const fakeFetch = vi.fn()
+    const fakeFetch = vi
+        .fn()
         .mockResolvedValueOnce(
             new Response(
                 JSON.stringify({
@@ -57,17 +58,13 @@ it('logs in and navigates to home', async () => {
         target: { value: 'example-password' },
     })
 
-    fireEvent.click(
-        screen.getByRole('button', { name: 'Sign in' }),
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 
     await screen.findByRole('heading', { name: 'Signed in' })
 
     expect(screen.getByText('test-user')).not.toBeNull()
 
-    expect(
-        screen.getByLabelText('Current path').textContent,
-    ).toBe('/home')
+    expect(screen.getByLabelText('Current path').textContent).toBe('/home')
 
     await screen.findByRole('heading', { name: 'No trips yet' })
     expect(fakeFetch).toHaveBeenCalledTimes(2)
@@ -122,24 +119,19 @@ it('shows an error when login credentials are invalid', async () => {
         target: { value: 'wrong-password' },
     })
 
-    fireEvent.click(
-        screen.getByRole('button', { name: 'Sign in' }),
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 
     const alert = await screen.findByRole('alert')
 
     expect(alert.textContent).toBe('Invalid email or password')
 
-    expect(
-        screen.getByLabelText('Current path').textContent,
-    ).toBe('/login')
+    expect(screen.getByLabelText('Current path').textContent).toBe('/login')
+
+    expect(screen.queryByRole('heading', { name: 'Signed in' })).toBeNull()
 
     expect(
-        screen.queryByRole('heading', { name: 'Signed in' }),
-    ).toBeNull()
-
-    expect(
-        screen.getByRole('button', { name: 'Sign in' })
+        screen
+            .getByRole('button', { name: 'Sign in' })
             .hasAttribute('disabled'),
     ).toBe(false)
 })

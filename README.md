@@ -15,6 +15,8 @@ proposals, voting, and real-time collaboration.
 Currently implemented:
 
 - React/TypeScript frontend with Vite, Auth pages, and protected routing.
+- Home Trip list and creation form connected to the backend, with loading,
+  validation, and request-error feedback.
 - Shared UI tokens and reusable form controls, cards, modals, tabs, and notifications using
   Tailwind CSS v4, Inter, and Lucide. See the [frontend guide](frontend/README.md)
   for component usage and styling conventions.
@@ -36,9 +38,9 @@ Currently implemented:
 Auth connects the frontend, backend, and database. Registration does not
 log the user in; login sets a Secure, HttpOnly cookie. Logout clears the
 cookie without revoking issued JWTs.
-`/home` is a temporary Auth verification page, not the final travel workspace.
-
-Travel pages and real-time collaboration are not implemented yet.
+`/home` lists the current user's trips; `/trips/new` creates a Trip.
+The Workspace route is currently a placeholder. Workspace details, deletion UI,
+and real-time collaboration are not implemented yet.
 See the [P0 database design](docs/database/p0-database-erd.md) for the target
 structure and current implementation status.
 

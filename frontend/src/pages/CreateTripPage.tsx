@@ -34,7 +34,12 @@ export function CreateTripPage() {
         const normalizedTitle = title.trim()
         const normalizedDestination = destination.trim()
 
-        if (!normalizedTitle || !normalizedDestination || !startDate || !endDate) {
+        if (
+            !normalizedTitle ||
+            !normalizedDestination ||
+            !startDate ||
+            !endDate
+        ) {
             setValidationError(t('trips.create.validation.required'))
             return
         }
@@ -49,7 +54,8 @@ export function CreateTripPage() {
         const start = new Date(`${startDate}T00:00:00.000Z`)
         const end = new Date(`${endDate}T00:00:00.000Z`)
         const millisecondsPerDay = 24 * 60 * 60 * 1000
-        const dayCount = (end.getTime() - start.getTime()) / millisecondsPerDay + 1
+        const dayCount =
+            (end.getTime() - start.getTime()) / millisecondsPerDay + 1
 
         if (dayCount > 365) {
             setValidationError(t('trips.create.validation.duration'))
@@ -97,7 +103,9 @@ export function CreateTripPage() {
                     name="destination"
                     type="text"
                     value={destination}
-                    onChange={(event) => setDestination(event.currentTarget.value)}
+                    onChange={(event) =>
+                        setDestination(event.currentTarget.value)
+                    }
                     maxLength={120}
                     required
                 />
@@ -107,7 +115,9 @@ export function CreateTripPage() {
                     name="startDate"
                     type="date"
                     value={startDate}
-                    onChange={(event) => setStartDate(event.currentTarget.value)}
+                    onChange={(event) =>
+                        setStartDate(event.currentTarget.value)
+                    }
                     required
                 />
 
@@ -124,18 +134,16 @@ export function CreateTripPage() {
                     label={t('trips.shared.fields.description')}
                     name="description"
                     value={description}
-                    onChange={(event) => setDescription(event.currentTarget.value)}
+                    onChange={(event) =>
+                        setDescription(event.currentTarget.value)
+                    }
                 />
 
                 {/* Announce validation feedback without clearing the entered values. */}
-                {validationError && (
-                    <p role="alert">{validationError}</p>
-                )}
+                {validationError && <p role="alert">{validationError}</p>}
 
                 {/* Display request failures while preserving the form values. */}
-                {createError && (
-                    <p role="alert">{createError}</p>
-                )}
+                {createError && <p role="alert">{createError}</p>}
 
                 <Button
                     type="submit"
@@ -144,8 +152,7 @@ export function CreateTripPage() {
                 >
                     {createLoading
                         ? t('trips.create.pending')
-                        : t('trips.shared.actions.create')
-                    }
+                        : t('trips.shared.actions.create')}
                 </Button>
 
                 <Button

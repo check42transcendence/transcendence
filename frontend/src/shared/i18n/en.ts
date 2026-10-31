@@ -16,8 +16,10 @@ export const en = {
     'auth.shared.placeholders.email': 'you@example.com',
     'auth.shared.actions.signIn': 'Sign in',
     'auth.shared.actions.createAccount': 'Create account',
-    'auth.shared.validation.passwordTooShort': 'Password must contain at least 8 characters.',
-    'auth.shared.validation.passwordTooLong': 'Password must not exceed 72 UTF-8 bytes.',
+    'auth.shared.validation.passwordTooShort':
+        'Password must contain at least 8 characters.',
+    'auth.shared.validation.passwordTooLong':
+        'Password must not exceed 72 UTF-8 bytes.',
 
     // Login page text, validation, and fallback error.
     'auth.login.title': 'Welcome back',
@@ -29,7 +31,8 @@ export const en = {
 
     // Registration page text, validation, and result messages.
     'auth.register.title': 'Create your account',
-    'auth.register.description': 'Sign up to start planning trips with friends.',
+    'auth.register.description':
+        'Sign up to start planning trips with friends.',
     'auth.register.fields.username': 'Username',
     'auth.register.fields.confirmPassword': 'Confirm password',
     'auth.register.placeholders.username': 'Choose a username',
@@ -80,7 +83,8 @@ export const en = {
     // Create Trip page messages.
     'trips.create.title': 'Create trip',
     'trips.create.validation.required': 'Please complete all required fields.',
-    'trips.create.validation.dateRange': 'End date must not be earlier than start date.',
+    'trips.create.validation.dateRange':
+        'End date must not be earlier than start date.',
     'trips.create.validation.duration': 'A trip must not exceed 365 days.',
 
     'trips.create.pending': 'Creating trip...',
