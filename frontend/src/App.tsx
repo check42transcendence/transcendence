@@ -74,12 +74,13 @@ function App() {
 	useEffect(() => {
 		if (!currentUserId)
 			return
-		connectRealtime()
 		 const removeGuard = installSessionGuard({
             socket: getRealtimeSocket(),
             verifySession: getMe,
             onAuthLost: () => setCurrentUser(null),
         })
+
+		connectRealtime()
 
 		return () => {
 			removeGuard()

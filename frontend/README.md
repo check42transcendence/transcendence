@@ -358,35 +358,3 @@ Reuse semantic classes such as `bg-brand`, `rounded-control`, and
 English comments. Use `className` for layout additions such as margins or
 width; do not rely on class-string order to override component colors or states.
 
-## Realtime (Socket.IO)
-
-The browser opens one Socket.IO connection to the same origin at
-`/socket.io`, using the existing HttpOnly session cookie. Vite proxies the
-path (with WebSocket upgrades) to the backend, and the HTTPS gateway does the
-same through `nginx.conf`. Authentication cookies are Secure, so test real
-connections at `https://localhost:8443`.
-
-Quick check in the browser developer tools (Network, filter `socket.io`):
-
-- a `transport=polling` request returns 200;
-- a `transport=websocket` request returns **101 Switching Protocols**;
-- the Itinerary section shows **Live updates on** once the Trip subscription
-  is confirmed and the Activity snapshot is loaded.
-
-How it fits together (all in `src/realtime/`):
-
-- `socket.ts` creates the single client. `App.tsx` connects it for the
-  signed-in user and disconnects it on sign out.
-- `trip-realtime.ts` owns Trip subscriptions: one `trip:subscribe` per Trip,
-  reference counted, re-sent after every reconnect.
-- `trip-sync.ts` keeps a feature's state consistent: it loads a REST snapshot,
-  holds events that arrive meanwhile, and replays them after the snapshot.
-  Reconnect order is authenticate, resubscribe, then refetch.
-- `useTripSync` plugs a feature into it. Activities do this in
-  `components/trips/useActivitySync.ts`; Proposals can use the same hook.
-- `session-guard.ts` handles a rejected handshake or a server-closed
-  connection, which Socket.IO does not retry on its own.
-
-Common problems: a connection stuck on polling usually means the proxy does
-not forward `Upgrade` headers; an immediate `Authentication required` means
-the session cookie is missing or expired.

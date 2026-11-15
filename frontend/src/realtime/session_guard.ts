@@ -1,105 +1,111 @@
 import type { RealtimeSocket } from './socket'
 
 export interface SessionGuardOptions {
-	socket: RealtimeSocket
-	// Ask the REST API whether the session is still valid (rejects with an
-	// error that has a numeric `status`, such as ApiError, when it is not).
-	verifySession: () => Promise<unknown>
-	// The server no longer accepts this user's session.
-	onAuthLost: () => void
-	retryDelayMs?: number
-	maxRetries?: number
-	// Injectable for tests. Returns a function that cancels the timer.
-	schedule?: (callback: () => void, delayMs: number) => () => void
+    socket: RealtimeSocket
+    // Ask the REST API whether the session is still valid (rejects with an
+    // error that has a numeric `status`, such as ApiError, when it is not).
+    verifySession: () => Promise<unknown>
+    // The server no longer accepts this user's session.
+    onAuthLost: () => void
+    // First retry delay; it doubles after each failed attempt.
+    retryDelayMs?: number
+    maxRetryDelayMs?: number
+    // Injectable for tests. Returns a function that cancels the timer.
+    schedule?: (callback: () => void, delayMs: number) => () => void
 }
 
 function defaultSchedule(callback: () => void, delayMs: number): () => void {
-	const timer = setTimeout(callback, delayMs)
+    const timer = setTimeout(callback, delayMs)
 
-	return () => clearTimeout(timer)
+    return () => clearTimeout(timer)
 }
 
 // Socket.IO retries by itself after network failures. It does not retry when
 // the server rejects the handshake or closes the connection on purpose, so
-// this guard handles those two cases. Returns a function that removes it.
+// this guard handles those two cases: it asks REST whether the session is
+// still valid, then either signs the user out or reconnects with a growing
+// delay. Returns a function that removes the guard.
 export function installSessionGuard(options: SessionGuardOptions): () => void {
-	const {
-		socket,
-		verifySession,
-		onAuthLost,
-		retryDelayMs = 3000,
-		maxRetries = 3,
-		schedule = defaultSchedule,
-	} = options
+    const {
+        socket,
+        verifySession,
+        onAuthLost,
+        retryDelayMs = 2000,
+        maxRetryDelayMs = 30000,
+        schedule = defaultSchedule,
+    } = options
 
-	let retries = 0
-	let checking = false
-	let disposed = false
-	let cancelRetry: (() => void) | null = null
+    let attempts = 0
+    let checking = false
+    let disposed = false
+    let cancelRetry: (() => void) | null = null
 
-	function scheduleReconnect(): void {
-		if (disposed || retries >= maxRetries || cancelRetry) return
+    function scheduleReconnect(): void {
+        if (disposed || cancelRetry) return
 
-		retries += 1
+        const delay = Math.min(retryDelayMs * 2 ** attempts, maxRetryDelayMs)
 
-		cancelRetry = schedule(() => {
-			cancelRetry = null
+        attempts += 1
 
-			if (!disposed) socket.connect()
-		}, retryDelayMs)
-	}
+        cancelRetry = schedule(() => {
+            cancelRetry = null
 
-	async function handleRejected(): Promise<void> {
-		if (checking) return
+            if (!disposed && !socket.connected) socket.connect()
+        }, delay)
+    }
 
-		checking = true
+    // Never reconnect blindly: an expired session would only be rejected again.
+    async function recover(): Promise<void> {
+        if (checking || disposed) return
 
-		try {
-			await verifySession()
+        checking = true
 
-			// The session is valid, so the rejection was probably temporary.
-			scheduleReconnect()
-		} catch (error) {
-			const status = (error as { status?: unknown } | null)?.status
+        try {
+            await verifySession()
 
-			if (status === 401) {
-				if (!disposed) onAuthLost()
-			} else {
-				// The check failed for another reason, such as no network.
-				scheduleReconnect()
-			}
-		} finally {
-			checking = false
-		}
-	}
+            // The session is valid, so the problem was probably temporary.
+            scheduleReconnect()
+        } catch (error) {
+            const status = (error as { status?: unknown } | null)?.status
 
-	function handleConnectError(): void {
-		// Still trying to reconnect by itself: a temporary failure.
-		if (socket.active || disposed) return
+            if (status === 401) {
+                if (!disposed) onAuthLost()
+            } else {
+                // The check failed for another reason, such as no network.
+                scheduleReconnect()
+            }
+        } finally {
+            checking = false
+        }
+    }
 
-		void handleRejected()
-	}
+    function handleConnectError(): void {
+        // Still trying to reconnect by itself: a temporary failure.
+        if (socket.active) return
 
-	function handleDisconnect(reason: string): void {
-		// The server closed the connection, so the client will not retry.
-		if (reason === 'io server disconnect') scheduleReconnect()
-	}
+        void recover()
+    }
 
-	function handleConnect(): void {
-		retries = 0
-	}
+    function handleDisconnect(reason: string): void {
+        // The server closed the connection, so the client will not retry.
+        if (reason === 'io server disconnect') void recover()
+    }
 
-	socket.on('connect_error', handleConnectError)
-	socket.on('disconnect', handleDisconnect)
-	socket.on('connect', handleConnect)
+    function handleConnect(): void {
+        attempts = 0
+    }
 
-	return () => {
-		disposed = true
-		cancelRetry?.()
-		cancelRetry = null
+    socket.on('connect_error', handleConnectError)
+    socket.on('disconnect', handleDisconnect)
+    socket.on('connect', handleConnect)
 
-		socket.off('connect_error', handleConnectError)
-		socket.off('disconnect', handleDisconnect)
-		socket.off('connect', handleConnect)
-	}
+    return () => {
+        disposed = true
+        cancelRetry?.()
+        cancelRetry = null
+
+        socket.off('connect_error', handleConnectError)
+        socket.off('disconnect', handleDisconnect)
+        socket.off('connect', handleConnect)
+    }
 }

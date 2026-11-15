@@ -17,7 +17,13 @@ export function useTripSync<TSnapshot>(
     listeners: TripSyncListeners = {},
     sync: TripSync = tripSync,
 ) {
-    const [status, setStatus] = useState<TripSyncStatus>('syncing')
+    // The status is stored with its Trip, so a status from the previous Trip
+    // is never shown for the new one.
+    const [tracked, setTracked] = useState<{
+        tripId: string | undefined
+        status: TripSyncStatus
+    }>({ tripId, status: 'syncing' })
+    const status = tracked.tripId === tripId ? tracked.status : 'syncing'
     const handleRef = useRef<TripSyncHandle | null>(null)
 
     // Keep the newest callbacks without restarting the sync on every render.
@@ -44,7 +50,7 @@ export function useTripSync<TSnapshot>(
             },
             {
                 onStatusChange: (next) => {
-                    setStatus(next)
+                    setTracked({ tripId, status: next })
                     listenersRef.current.onStatusChange?.(next)
                 },
                 onAccessLost: (reason) =>

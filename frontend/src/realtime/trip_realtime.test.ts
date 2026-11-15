@@ -90,6 +90,23 @@ function envelope(tripId: string): RealtimeEnvelope<unknown> {
 }
 
 describe('createTripRealtime', () => {
+	it('delivers every event name in the contract, Proposal events included', () => {
+		const { socket, controller } = setup()
+		const onEvent = vi.fn()
+
+		controller.subscribe('trip-1', { onEvent })
+
+		const names = [
+			'activity:created', 'activity:updated', 'activity:deleted',
+			'proposal:created', 'proposal:vote-updated',
+			'proposal:adopted', 'proposal:reopened',
+		]
+
+		for (const name of names) socket.fire(name, envelope('trip-1'))
+
+		expect(onEvent).toHaveBeenCalledTimes(names.length)
+	})
+	
     it('subscribes immediately when the socket is connected', () => {
         const { socket, controller } = setup(true)
 

@@ -1,4 +1,4 @@
-import type { RealtimeEnvelope, ActivityRealtimeEventName, } from '@tripcollab/shared'
+import type { RealtimeEnvelope, RealtimeEventName, SubscriptionAck,} from '@tripcollab/shared'
 import type { RealtimeSocket } from './socket'
 
 // Adding a name to the shared contract type makes this object fail to compile
@@ -7,11 +7,15 @@ const EVENT_NAMES = {
 	'activity:created': true,
 	'activity:updated': true,
 	'activity:deleted': true,
-} satisfies Record<ActivityRealtimeEventName, true>
+	'proposal:created': true,
+	'proposal:vote-updated': true,
+	'proposal:adopted': true,
+	'proposal:reopened': true,
+} satisfies Record<RealtimeEventName, true>
 
 export const REALTIME_EVENT_NAMES = Object.keys(
 	EVENT_NAMES,
-) as ActivityRealtimeEventName[]
+) as RealtimeEventName[]
 
 // How long to wait for the server to answer trip:subscribe.
 export const SUBSCRIBE_ACK_TIMEOUT_MS = 5000
@@ -22,7 +26,7 @@ export type TripSubscriptionStatus =
 
 export interface TripRealtimeHandlers {
 	onEvent?: (
-		eventName: ActivityRealtimeEventName,
+		eventName: RealtimeEventName,
 		envelope: RealtimeEnvelope<unknown>,
 	) => void
 	onStatusChange?: (status: TripSubscriptionStatus) => void
@@ -108,7 +112,7 @@ export function createTripRealtime(
 
 	// Deliver an event to the handlers of the Trip named in its envelope.
 	function dispatch(
-		eventName: ActivityRealtimeEventName,
+		eventName: RealtimeEventName,
 		envelope: RealtimeEnvelope<unknown>,
 	): void {
 		if (typeof envelope?.tripId !== 'string') return
@@ -147,7 +151,7 @@ export function createTripRealtime(
 
 		socket
 			.timeout(SUBSCRIBE_ACK_TIMEOUT_MS)
-			.emit('trip:subscribe', { tripId: record.tripId }, (error, ack) => {
+			.emit('trip:subscribe', { tripId: record.tripId }, (error: Error | null, ack?: SubscriptionAck) => {
 				// Ignore answers for a record or request that no longer counts.
 				if (
 					records.get(record.tripId) !== record ||

@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, renderHook } from '@testing-library/react'
 import type { TripRealtimeController, TripRealtimeHandlers } from './trip_realtime'

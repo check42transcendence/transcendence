@@ -1,9 +1,14 @@
 import { io, type Socket } from 'socket.io-client'
 import type {
-	ActivityServerToClientEvents,
+	RealtimeEnvelope,
+	RealtimeEventName,
 	SubscriptionAck,
 	TripSubscriptionPayload,
 } from '@tripcollab/shared'
+
+export type ServerToClientEvents = {
+    [K in RealtimeEventName]: (envelope: RealtimeEnvelope<unknown>) => void
+}
 
 // Events the browser may send. Subscription changes are not domain writes.
 export interface ClientToServerEvents {
@@ -17,14 +22,8 @@ export interface ClientToServerEvents {
 	) => void
 }
 
-// Proposal event payloads are added with #50/#62.
-export type RealtimeSocket = Socket<
-	ActivityServerToClientEvents,
-	ClientToServerEvents
->
-
+export type RealtimeSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 let socket: RealtimeSocket | null = null
-
 
 // Return the one shared socket, creating it without connecting on first use.
 export function getRealtimeSocket(): RealtimeSocket {

@@ -11,18 +11,13 @@ import { connectRealtime, disconnectRealtime } from './realtime/socket'
 import { tripRealtime } from './realtime/client'
 
 // Mock realtime so tests never open a real Socket.IO connection.
-vi.mock('./realtime/socket', () => ({
-    connectRealtime: vi.fn(),
-    disconnectRealtime: vi.fn(),
-}))
+vi.mock('./realtime/socket', async () => {
+    const { createFakeRealtimeSocketModule } = await import(
+        './test-utils/fake_realtime_socket'
+    )
 
-vi.mock('./realtime/client', () => ({
-    tripRealtime: {
-        subscribe: vi.fn(),
-        getStatus: vi.fn(() => 'idle'),
-        reset: vi.fn(),
-    },
-}))
+    return createFakeRealtimeSocketModule()
+})
 
 setupAppTests()
 
@@ -30,7 +25,7 @@ setupAppTests()
 beforeEach(() => {
     vi.mocked(connectRealtime).mockClear()
     vi.mocked(disconnectRealtime).mockClear()
-    vi.mocked(tripRealtime.reset).mockClear()
+
 })
 
 // Route signed-in requests by URL so Home can load invitations independently.
@@ -323,6 +318,8 @@ it('does not connect realtime without a session', async () => {
 
 // Clears subscriptions and disconnects when the user signs out.
 it('drops subscriptions and disconnects realtime on logout', async () => {
+    const reset = vi.spyOn(tripRealtime, 'reset')
+
     vi.stubGlobal('fetch', mockSignedInRequests())
 
     render(
@@ -331,14 +328,13 @@ it('drops subscriptions and disconnects realtime on logout', async () => {
         </MemoryRouter>,
     )
 
-    fireEvent.click(
-        await screen.findByRole('button', { name: 'Sign out' }),
-    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign out' }))
 
     await screen.findByRole('heading', { name: 'Welcome back' })
-
     await waitFor(() => {
-        expect(tripRealtime.reset).toHaveBeenCalled()
+        expect(reset).toHaveBeenCalled()
         expect(disconnectRealtime).toHaveBeenCalled()
     })
+
+    reset.mockRestore()
 })

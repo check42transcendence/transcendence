@@ -5,8 +5,8 @@ import { getTrip, getTripDays, deleteTrip } from '../api/trips'
 import type { 
 	TripDetail, 
 	ItineraryDay,
-	ActivityRealtimeEventName,
-    RealtimeEnvelope, } from '@tripcollab/shared'
+	RealtimeEventName,
+	RealtimeEnvelope, } from '@tripcollab/shared'
 import { PageContainer } from '../components/layout/PageContainer'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -20,7 +20,7 @@ import type { TripSubscriptionStatus } from '../realtime'
 
 // Log incoming Activity events during development.
 function logRealtimeEvent(
-    eventName: ActivityRealtimeEventName,
+    eventName: RealtimeEventName,
     envelope: RealtimeEnvelope<unknown>,
 ): void {
     if (import.meta.env.DEV) {
