@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router'
 import { ApiError } from '../lib/http/api-error'
 import { getTrip, getTripDays, deleteTrip } from '../api/trips'
-import type { TripDetail, ItineraryDay } from '@tripcollab/shared'
+import type { 
+	TripDetail, 
+	ItineraryDay,
+	ActivityRealtimeEventName,
+    RealtimeEnvelope, } from '@tripcollab/shared'
 import { PageContainer } from '../components/layout/PageContainer'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -11,12 +15,39 @@ import { TripMembersSection } from '../components/trips/TripMembersSection'
 import { TripItinerarySection } from '../components/trips/TripItinerarySection'
 import { t } from '../shared/i18n/translation'
 import { ProposalSection } from '../components/proposals/ProposalSection'
+import { useTripRealtime } from '../realtime'
+import type { TripSubscriptionStatus } from '../realtime'
+
+// Log incoming Activity events during development.
+function logRealtimeEvent(
+    eventName: ActivityRealtimeEventName,
+    envelope: RealtimeEnvelope<unknown>,
+): void {
+    if (import.meta.env.DEV) {
+        console.debug('[realtime]', eventName, envelope)
+    }
+}
+
+// Log subscription status changes during development.
+function logRealtimeStatus(
+    status: TripSubscriptionStatus,
+): void {
+    if (import.meta.env.DEV) {
+        console.debug('[realtime] subscription', status)
+    }
+}
 
 // Load and display the current trip workspace.
 export function TripWorkspacePage() {
     const params = useParams()
     const tripId = params.tripId
     const navigate = useNavigate()
+
+	// Subscribe to realtime events for the current Trip.
+	useTripRealtime(tripId, {
+        onEvent: logRealtimeEvent,
+        onStatusChange: logRealtimeStatus,
+    })
 
     // Track trip details, loading progress, and request errors.
     const [trip, setTrip] = useState<TripDetail | null>(null)
