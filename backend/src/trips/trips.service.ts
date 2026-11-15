@@ -5,6 +5,7 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { CreateTripDto } from './dto/create-trip.dto.js';
 import { CreateInvitationDto } from './dto/create-invitation.dto.js';
@@ -53,6 +54,7 @@ function isPendingInvitationUniqueConflict(error: unknown): boolean {
 
 @Injectable()
 export class TripsService {
+  private readonly logger = new Logger(TripsService.name);
   constructor(
     @Inject(PrismaService)
     private readonly prisma: PrismaService,
@@ -805,8 +807,8 @@ export class TripsService {
 
   // Allow a current Member to leave a Trip and clean up their Votes atomically.
   async leaveTrip(userId: string, tripId: string): Promise<void> {
+    // Commit database changes before attempting Socket cleanup.
     await this.prisma.$transaction(async (tx) => {
-      // Lock the Trip before checking or changing Membership.
       const lockedTrips = await tx.$queryRaw<Array<{ id: string }>>`
         SELECT "id"
         FROM "trip"
@@ -824,7 +826,6 @@ export class TripsService {
         });
       }
 
-      // Lock the caller's Membership while holding the Trip lock.
       const memberships = await tx.$queryRaw<Array<{ role: string }>>`
         SELECT "role"
         FROM "trip_member"
@@ -853,7 +854,6 @@ export class TripsService {
         });
       }
 
-      // Remove only this user's Votes belonging to this Trip.
       await tx.proposalVote.deleteMany({
         where: {
           userId,
@@ -861,7 +861,6 @@ export class TripsService {
         },
       });
 
-      // Remove the Membership after cleaning up the user's Votes.
       const result = await tx.tripMember.deleteMany({
         where: {
           tripId,
@@ -880,6 +879,16 @@ export class TripsService {
         });
       }
     });
+
+    // The database transaction has committed. Socket cleanup cannot roll it back.
+    try {
+      await this.realtime.removeUserFromTrip(userId, tripId);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Socket cleanup failed after Leave committed (tripId=${tripId}, userId=${userId})`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
   }
 
   // Allow only the current owner to proceed with trip deletion.
