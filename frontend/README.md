@@ -357,3 +357,4 @@ Reuse semantic classes such as `bg-brand`, `rounded-control`, and
 `text-muted`. Component classes are grouped into named constants with
 English comments. Use `className` for layout additions such as margins or
 width; do not rely on class-string order to override component colors or states.
+

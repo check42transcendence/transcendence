@@ -12,6 +12,12 @@ import type { RegisterInput, LoginInput, CurrentUser } from '@tripcollab/shared'
 
 import { ApiError } from './lib/http/api-error'
 import { t } from './shared/i18n/translation'
+import { connectRealtime,
+		 disconnectRealtime,
+		 tripRealtime,
+		 installSessionGuard,
+		 getRealtimeSocket,
+		  } from './realtime'
 
 function App() {
     const [loginLoading, setLoginLoading] = useState(false)
@@ -64,6 +70,24 @@ function App() {
         }
     }, [])
 
+	const currentUserId = currentUser?.id ?? null
+	useEffect(() => {
+		if (!currentUserId)
+			return
+		 const removeGuard = installSessionGuard({
+            socket: getRealtimeSocket(),
+            verifySession: getMe,
+            onAuthLost: () => setCurrentUser(null),
+        })
+
+		connectRealtime()
+
+		return () => {
+			removeGuard()
+			tripRealtime.reset()
+			disconnectRealtime()
+		}
+	}, [currentUserId])
     // Registers a user and displays the result.
     async function handleRegister(input: RegisterInput): Promise<void> {
         setRegisterLoading(true)

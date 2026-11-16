@@ -1,13 +1,32 @@
+
 // @vitest-environment jsdom
 
-import { expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import App from './App'
 import { setupAppTests } from './test-utils/app-test-setup'
 import { CurrentPath } from './test-utils/CurrentPath'
+import { connectRealtime, disconnectRealtime } from './realtime/socket'
+import { tripRealtime } from './realtime/client'
+
+// Mock realtime so tests never open a real Socket.IO connection.
+vi.mock('./realtime/socket', async () => {
+    const { createFakeRealtimeSocketModule } = await import(
+        './test-utils/fake_realtime_socket'
+    )
+
+    return createFakeRealtimeSocketModule()
+})
 
 setupAppTests()
+
+// Count realtime calls independently in each test.
+beforeEach(() => {
+    vi.mocked(connectRealtime).mockClear()
+    vi.mocked(disconnectRealtime).mockClear()
+
+})
 
 // Route signed-in requests by URL so Home can load invitations independently.
 function mockSignedInRequests(logoutFails = false) {
@@ -27,18 +46,21 @@ function mockSignedInRequests(logoutFails = false) {
                 },
             )
         }
+
         if (url === '/api/trips') {
             return new Response(JSON.stringify({ trips: [] }), {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' },
             })
         }
+
         if (url === '/api/invitations?status=PENDING') {
             return new Response(JSON.stringify({ invitations: [] }), {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' },
             })
         }
+
         if (url === '/api/auth/logout' && options?.method === 'POST') {
             return logoutFails
                 ? new Response(
@@ -56,6 +78,7 @@ function mockSignedInRequests(logoutFails = false) {
                   )
                 : new Response(null, { status: 204 })
         }
+
         throw new Error(`Unexpected test request: ${url}`)
     })
 }
@@ -261,4 +284,57 @@ it('shows an error and stays signed in when logout fails', async () => {
     expect(screen.getByLabelText('Current path').textContent).toBe('/home')
 
     expect(button.hasAttribute('disabled')).toBe(false)
+})
+
+// Connects realtime only for a signed-in user.
+it('connects realtime after the session is restored', async () => {
+    vi.stubGlobal('fetch', mockSignedInRequests())
+
+    render(
+        <MemoryRouter initialEntries={['/home']}>
+            <App />
+        </MemoryRouter>,
+    )
+
+    await screen.findByRole('button', { name: 'Sign out' })
+
+    await waitFor(() => {
+        expect(connectRealtime).toHaveBeenCalledTimes(1)
+    })
+})
+
+// Does not connect realtime without an authenticated session.
+it('does not connect realtime without a session', async () => {
+    render(
+        <MemoryRouter initialEntries={['/login']}>
+            <App />
+        </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'Welcome back' })
+
+    expect(connectRealtime).not.toHaveBeenCalled()
+})
+
+// Clears subscriptions and disconnects when the user signs out.
+it('drops subscriptions and disconnects realtime on logout', async () => {
+    const reset = vi.spyOn(tripRealtime, 'reset')
+
+    vi.stubGlobal('fetch', mockSignedInRequests())
+
+    render(
+        <MemoryRouter initialEntries={['/home']}>
+            <App />
+        </MemoryRouter>,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign out' }))
+
+    await screen.findByRole('heading', { name: 'Welcome back' })
+    await waitFor(() => {
+        expect(reset).toHaveBeenCalled()
+        expect(disconnectRealtime).toHaveBeenCalled()
+    })
+
+    reset.mockRestore()
 })

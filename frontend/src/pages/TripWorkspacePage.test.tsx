@@ -18,6 +18,14 @@ import { TripWorkspacePage } from './TripWorkspacePage'
 import { HomePage } from './HomePage'
 import { CurrentPath } from '../test-utils/CurrentPath'
 
+vi.mock('../realtime/socket', async () => {
+    const { createFakeRealtimeSocketModule } = await import(
+        '../test-utils/fake_realtime_socket'
+    )
+
+    return createFakeRealtimeSocketModule()
+})
+
 // Public trip details reused by workspace tests.
 const trip: TripDetail = {
     id: 'test-trip-id',
