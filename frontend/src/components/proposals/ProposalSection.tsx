@@ -152,6 +152,17 @@ export function ProposalSection({ tripId }: ProposalSectionProps) {
         setVoteError('')
     }
 
+    function clearInaccessibleProposal(message: string): void {
+        // Remove cached data that the user may no longer access.
+        setDetail(null)
+        setProposals([])
+
+        // Show the reason instead of the old Proposal content.
+        setDetailError(message)
+        setListError(message)
+        setVoteError('')
+    }
+
     async function handleVote(decision: VoteDecision): Promise<void> {
         if (
             voteLoading ||
@@ -196,18 +207,26 @@ export function ProposalSection({ tripId }: ProposalSectionProps) {
                         break
 
                     case 'PROPOSAL_NOT_FOUND':
-                        setVoteError(t('proposals.vote.unavailable'))
-                        setDetailVersion((version) => version + 1)
+                        setDetail(null)
+                        setDetailError(t('proposals.vote.unavailable'))
+                        setVoteError('')
+                        setProposals((current) =>
+                            current.filter(
+                                (proposal) => proposal.id !== proposalId,
+                            ),
+                        )
                         break
 
                     case 'TRIP_NOT_FOUND':
                     case 'MEMBERSHIP_REQUIRED':
                     case 'ACCESS_DENIED':
-                        setVoteError(t('proposals.vote.permission'))
+                        clearInaccessibleProposal(
+                            t('proposals.vote.permission'),
+                        )
                         break
 
                     case 'AUTHENTICATION_REQUIRED':
-                        setVoteError(t('proposals.vote.session'))
+                        clearInaccessibleProposal(t('proposals.vote.session'))
                         break
 
                     default:

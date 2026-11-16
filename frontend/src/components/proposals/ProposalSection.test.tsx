@@ -755,14 +755,11 @@ describe('ProposalSection', () => {
 
     it.each([
         [400, 'The vote was rejected as invalid.'],
-        [403, 'You no longer have permission to vote in this trip.'],
-        [401, 'Please sign in again to vote.'],
         [500, 'Unable to save your vote. Please try again.'],
     ] as const)(
-        'shows a useful error message when voting returns HTTP %i',
+        'keeps Proposal details after HTTP %i',
         async (status, message) => {
             const { state } = mockProposalRequests([exampleProposal])
-
             state.voteStatus = status
 
             render(<ProposalSection tripId={tripId} />)
@@ -779,11 +776,47 @@ describe('ProposalSection', () => {
                 message,
             )
 
+            expect(within(dialog).getByText('Visit Louvre')).not.toBeNull()
+
             expect(
                 within(dialog)
                     .getByRole('button', { name: 'Vote reject' })
                     .hasAttribute('disabled'),
             ).toBe(false)
+        },
+    )
+
+    it.each([
+        [401, 'Please sign in again to vote.'],
+        [403, 'You no longer have permission to vote in this trip.'],
+    ] as const)(
+        'clears stale Proposal data after HTTP %i',
+        async (status, message) => {
+            const { state } = mockProposalRequests([exampleProposal])
+            state.voteStatus = status
+
+            render(<ProposalSection tripId={tripId} />)
+
+            const dialog = await openDetailDialog()
+
+            fireEvent.click(
+                within(dialog).getByRole('button', {
+                    name: 'Vote reject',
+                }),
+            )
+
+            expect((await within(dialog).findByRole('alert')).textContent).toBe(
+                message,
+            )
+
+            expect(within(dialog).queryByText('Visit Louvre')).toBeNull()
+            expect(
+                within(dialog).queryByRole('button', {
+                    name: 'Vote reject',
+                }),
+            ).toBeNull()
+
+            expect(screen.queryByText('Visit Louvre')).toBeNull()
         },
     )
 })
