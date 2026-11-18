@@ -49,6 +49,8 @@ model User {
   receivedInvitations TripInvitation[] @relation("TripInvitationInvitee")
   createdProposals    Proposal[]       @relation("ProposalCreator")
   proposalVotes       ProposalVote[]
+  createdActivities Activity[] @relation("ActivityCreator")
+  editedActivities  Activity[] @relation("ActivityEditor")
 
   @@map("user")
 }
@@ -67,6 +69,7 @@ model Trip {
   days        ItineraryDay[]
   proposals   Proposal[]
   invitations TripInvitation[]
+  activities Activity[]
 
   @@map("trip")
 }
@@ -92,10 +95,43 @@ model ItineraryDay {
   date      DateTime @db.Date
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  activities Activity[]
 
   @@unique([tripId, dayNumber])
   @@unique([tripId, date])
+  @@unique([tripId, id])
   @@map("itinerary_day")
+}
+
+
+model Activity {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tripId         String    @map("trip_id") @db.Uuid
+  itineraryDayId String    @map("itinerary_day_id") @db.Uuid
+  proposalId     String?   @unique @map("proposal_id") @db.Uuid
+
+  title          String    @db.VarChar(160)
+  startTime      DateTime  @map("start_time") @db.Time(6)
+  endTime        DateTime? @map("end_time") @db.Time(6)
+  location       String?   @db.VarChar(255)
+  description    String?   @db.Text
+
+  version        Int       @default(1)
+  createdBy      String    @map("created_by") @db.Uuid
+  updatedBy      String    @map("updated_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+ 
+  trip     Trip         @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  day      ItineraryDay @relation(fields: [tripId, itineraryDayId], references: [tripId, id], onDelete: Cascade)
+  proposal Proposal?    @relation(fields: [tripId, proposalId], references: [tripId, id], onDelete: Cascade)
+  creator  User         @relation("ActivityCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  editor   User         @relation("ActivityEditor", fields: [updatedBy], references: [id], onDelete: Restrict)
+
+  @@unique([tripId, proposalId])
+  @@index([tripId])
+  @@index([itineraryDayId])
+  @@map("activity")
 }
 
 model Proposal {
@@ -110,7 +146,9 @@ model Proposal {
   trip    Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
   creator User           @relation("ProposalCreator", fields: [createdBy], references: [id])
   votes   ProposalVote[]
+  activity Activity?
 
+  @@unique([tripId, id])
   @@index([tripId])
   @@map("proposal")
 }
