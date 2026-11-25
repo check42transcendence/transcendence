@@ -9,6 +9,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 import { TripsModule } from './trips/trips.module.js';
 import { ProposalsModule } from './proposals/proposals.module.js';
 import { RealtimeModule } from './realtime/realtime.module.js';
+import { ActivitiesModule } from './activities/activities.module.js';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { RealtimeModule } from './realtime/realtime.module.js';
     TripsModule,
     ProposalsModule,
 	RealtimeModule,
+	ActivitiesModule,
   ],
   controllers: [AppController],
   providers: [
