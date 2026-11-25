@@ -279,11 +279,6 @@ export class ActivitiesService {
   ): Promise<ActivityResponse> {
     const { expectedVersion, ...changes } = input;
 
-    // At least one editable field is required. Use !== undefined (not `in`).
-    if (Object.values(changes).every((value) => value === undefined)) {
-      throw validationError();
-    }
-
     let record;
     try {
       record = await this.prisma.$transaction(async (tx) => {
@@ -299,6 +294,12 @@ export class ActivitiesService {
         if (!current) {
           throw activityNotFound();
         }
+
+		if (Object.values(changes).every(
+			(value) => value === undefined,
+		)) {
+			throw validationError();
+		}
 
         // 3. Validate the input against the Trip and the merged time range.
         if (changes.itineraryDayId !== undefined) {
